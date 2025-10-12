@@ -1,0 +1,6 @@
+dev/
+*.py
+*.o
+gen-village
+.vscode/
+.DS_Store
