@@ -1,0 +1,45 @@
+Student 1 - Task A: [Name] - [Number] - [GitHub Username] 
+Student 2 - Task B: [Name] - [Number] - [GitHub Username] 
+Student 3 - Task C: [Name] - [Number] - [GitHub Username] 
+There are 1 command line arguments.
+./gen-village
+Command Line Arguments: 
+	 Location (x,z) : (123, 123)
+	 Village Size : 50
+	 Plot Border : 10
+	 Seed : 1
+	 Testmode : 1
+Task A: Finding Plots and Terraforming
+	 Finding plots...
+	 Doing some landscaping...
+	 Placing a cool wall around the village...
+Task B: Building Houses
+	 Building the exterior of the buildings...
+	 Subdividing the interior...
+
+XXXXXXXXXXXXXXXXXXXXX
+X    X    X    X    X
+X    .    .    .    X
+X    X    X    X    X
+X    X    X    X    X
+XXX.XXXX.XXXX.XXXX.XX
+X    X    X    X    X
+X    X    X    X    X
+X    X    X    X    X
+X    X    X    X    X
+XXX.XXXX.XXXX.XXXX.XX
+X    X    X    X    X
+X    X    X    X    X
+X    X    X    X    X
+X    X    X    X    X
+XXX.XXXX.XXXX.XXXX.XX
+X    X    X    X    X
+X    .    .    .    X
+X    X    X    X    X
+X    X    X    X    X
+XXXXXXXXXXXXXXXXXXXXX
+    
+	 Doing some interior decorating...
+Task C: Building Houses
+	 Connecting waypoints with a fancy path...
+	 Connecting buildings to waypoints with more fancy paths...
