@@ -2,8 +2,12 @@
 #define UTILS_H
 
 #include <iostream>
+#include "models/Plot/plot.h"
+#include "config.h"
 
-void print_student_details();
-void print_command_line_arguments(int loc_x, int loc_z, int village_size, int plot_border, int seed, bool testmode);
+void printStudentDetails();
+bool isTesting(std::string testingComponent);
+std::vector<Plot*> pointerisePlotVector(std::vector<Plot> plots);
 
 #endif
+
