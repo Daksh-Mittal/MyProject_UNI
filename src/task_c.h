@@ -1,13 +1,16 @@
 #ifndef TASK_C
 #define TASK_C
-
 #include <vector>
-#include <iostream>
-#include "plots.h"
-#include "paths.h"
+#include <mcpp/mcpp.h>  // needed for mcpp::Coordinate and MinecraftConnection
+#include "models/Plot/plot.h"
+#include "models/Waypoints/waypoint.h"
+#include "models/Path/path.h"  // correct header name (not "paths.h")
 
-void connect_waypoints() ;
+// Connect all waypoints together using prim and bfs
+void connect_waypoints(mcpp::Coordinate& start, std::vector<Waypoint>& waypoints, mcpp::MinecraftConnection& mc);
 
-void connect_buildings() ;
+// Connect plot to the nearest waypoints
+void connect_buildings(std::vector<Waypoint>& waypoints, std::vector<Plot>& plots, mcpp::MinecraftConnection& mc);
 
+void testTaskC(const std::string&, int, mcpp::MinecraftConnection&);
 #endif
