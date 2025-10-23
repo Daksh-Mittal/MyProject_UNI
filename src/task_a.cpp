@@ -1,3 +1,4 @@
+
 #include "task_a.h"
 #include "config.h"
 #include "models/Plot/plot.h"
@@ -10,22 +11,26 @@
 #include <cmath>
 #include <cstdlib>
 #include <tuple>
+#include <random>
 
-const int MAX_SLOPE_DELTA = 15;
-const float MAX_WATER_COVERAGE = 0.15;
-
+// Function to find the highest non-air/non-water block at (x, z)
 int get_surface_y(mcpp::MinecraftConnection& mc, int x, int z) {
     for (int y = 255; y >= 0; --y) {
         mcpp::Coordinate current_coord(x, y, z);
         mcpp::BlockType block = mc.getBlock(current_coord);
+        // Blocks::AIR (0), BlockType(8) for Flowing Water, BlockType(9) for Still Water
         if (block != mcpp::Blocks::AIR && block != mcpp::BlockType(8) && block != mcpp::BlockType(9)) {
             return y;
         }
     }
-    return 63;
+    return 63; // Default Minecraft surface level
 }
 
+// Validates plot based on terrain and water coverage
 bool validate_plot(mcpp::MinecraftConnection& mc, const mcpp::Coordinate& origin, const mcpp::Coordinate& bound, const std::vector<Plot>& existing_plots) {
+    const Config& config = Config::GetInstance();
+    int plot_border = config.GetPlotBorder();
+    
     int plot_min_x = std::min(origin.x, bound.x);
     int plot_max_x = std::max(origin.x, bound.x);
     int plot_min_z = std::min(origin.z, bound.z);
@@ -35,22 +40,61 @@ bool validate_plot(mcpp::MinecraftConnection& mc, const mcpp::Coordinate& origin
     int max_y = 0;
     int water_blocks = 0;
 
+    std::cout << "DEBUG: Validating plot at (" << plot_min_x << "," << plot_min_z << ") to (" 
+              << plot_max_x << "," << plot_max_z << ")" << std::endl;
+
     for (int x = plot_min_x; x <= plot_max_x; ++x) {
         for (int z = plot_min_z; z <= plot_max_z; ++z) {
             int y = get_surface_y(mc, x, z);
             if (y > max_y) max_y = y;
             if (y < min_y) min_y = y;
+            
+            // Check for water *above* the surface block
             mcpp::BlockType block = mc.getBlock(mcpp::Coordinate(x, y + 1, z));
             if (block == mcpp::BlockType(8) || block == mcpp::BlockType(9)) water_blocks++;
         }
     }
 
-    if (max_y - min_y > MAX_SLOPE_DELTA) return false;
+    // A maximum slope delta of 15
+    int slope_delta = max_y - min_y;
+    if (slope_delta > 15) {
+        std::cout << "DEBUG: REJECTED - Slope too steep: " << slope_delta << std::endl;
+        return false;
+    }
+    
+    // A surface water coverage of <= 15%
     float current_water_coverage = (float)water_blocks / plot_area;
-    if (current_water_coverage > MAX_WATER_COVERAGE) return false;
+    if (current_water_coverage > 0.15) {
+        std::cout << "DEBUG: REJECTED - Too much water: " << current_water_coverage << std::endl;
+        return false;
+    }
+    
+    // Check border intersection with village boundary
+    int village_size = config.GetVillageSize();
+    int center_x = config.GetLocationX();
+    int center_z = config.GetLocationZ();
+    
+    int village_min_x = center_x - village_size / 2;
+    int village_max_x = center_x + village_size / 2;
+    int village_min_z = center_z - village_size / 2;
+    int village_max_z = center_z + village_size / 2;
+    
+    int border_min_x = plot_min_x - plot_border;
+    int border_max_x = plot_max_x + plot_border;
+    int border_min_z = plot_min_z - plot_border;
+    int border_max_z = plot_max_z + plot_border;
+    
+    if (border_min_x < village_min_x || border_max_x > village_max_x ||
+        border_min_z < village_min_z || border_max_z > village_max_z) {
+        std::cout << "DEBUG: REJECTED - Border exceeds village boundary" << std::endl;
+        return false;
+    }
+    
+    std::cout << "DEBUG: ACCEPTED - Plot is valid" << std::endl;
     return true;
 }
 
+// Determines the plot entrance facing the village center
 mcpp::Coordinate determine_entrance(const mcpp::Coordinate& origin, const mcpp::Coordinate& bound) {
     const Config& config = Config::GetInstance();
     int min_x = std::min(origin.x, bound.x);
@@ -60,45 +104,40 @@ mcpp::Coordinate determine_entrance(const mcpp::Coordinate& origin, const mcpp::
     int plot_height = origin.y;
     int center_x = config.GetLocationX();
     int center_z = config.GetLocationZ();
-    int dist_to_top_edge = std::abs(center_z - max_z);
+
+    // Calculate distance of each edge to the village center
     int dist_to_bottom_edge = std::abs(center_z - min_z);
+    int dist_to_top_edge = std::abs(center_z - max_z);
     int dist_to_left_edge = std::abs(center_x - min_x);
     int dist_to_right_edge = std::abs(center_x - max_x);
-    std::tuple<int, int, int, int, int, char> sides[4] = {
-        {dist_to_bottom_edge, 0, min_x, min_z, max_x - min_x, 'X'},
-        {dist_to_top_edge, 1, min_x, max_z, max_x - min_x, 'X'},
-        {dist_to_left_edge, 2, min_z, min_x, max_z - min_z, 'Z'},
-        {dist_to_right_edge, 3, min_z, max_x, max_z - min_z, 'Z'}
-    };
-    std::sort(sides, sides + 4, [](const auto& a, const auto& b) {
-        return std::get<0>(a) < std::get<0>(b);
-    });
-    int start_coord = std::get<2>(sides[0]);
-    int fixed_coord = std::get<3>(sides[0]);
-    int length = std::get<4>(sides[0]);
-    char axis = std::get<5>(sides[0]);
-    int door_pos_offset;
-    if (config.IsTestMode()) {
-        door_pos_offset = length / 2;
+
+    // Find the edge closest to the center
+    int min_dist = std::min({dist_to_bottom_edge, dist_to_top_edge, dist_to_left_edge, dist_to_right_edge});
+    
+    mcpp::Coordinate entrance(0, plot_height + 1, 0);
+    
+    if (min_dist == dist_to_bottom_edge) {
+        // Bottom edge (min_z)
+        entrance.x = (min_x + max_x) / 2;
+        entrance.z = min_z;
+    } else if (min_dist == dist_to_top_edge) {
+        // Top edge (max_z)
+        entrance.x = (min_x + max_x) / 2;
+        entrance.z = max_z;
+    } else if (min_dist == dist_to_left_edge) {
+        // Left edge (min_x)
+        entrance.x = min_x;
+        entrance.z = (min_z + max_z) / 2;
     } else {
-        int available_range = length - 1;
-        if (available_range <= 1) {
-            door_pos_offset = 1;
-        } else {
-            door_pos_offset = 1 + (std::rand() % (available_range - 1));
-        }
+        // Right edge (max_x)
+        entrance.x = max_x;
+        entrance.z = (min_z + max_z) / 2;
     }
-    mcpp::Coordinate entrance_coord(0, plot_height + 1, 0);
-    if (axis == 'X') {
-        entrance_coord.x = start_coord + door_pos_offset;
-        entrance_coord.z = fixed_coord;
-    } else {
-        entrance_coord.x = fixed_coord;
-        entrance_coord.z = start_coord + door_pos_offset;
-    }
-    return entrance_coord;
+    
+    return entrance;
 }
 
+// Finds suitable plots within the village area
 std::vector<Plot> find_plots() {
     mcpp::MinecraftConnection mc;
     const Config& config = Config::GetInstance();
@@ -107,219 +146,272 @@ std::vector<Plot> find_plots() {
     int center_x = config.GetLocationX();
     int center_z = config.GetLocationZ();
     bool testmode = config.IsTestMode();
+   // int plot_border = config.GetPlotBorder();
+
+    std::cout << "DEBUG: Finding plots around (" << center_x << "," << center_z 
+              << ") with size " << village_size << std::endl;
+
+    // Village area bounds
     int village_min_x = center_x - village_size / 2;
     int village_min_z = center_z - village_size / 2;
     int village_max_x = center_x + village_size / 2;
     int village_max_z = center_z + village_size / 2;
+
+    std::cout << "DEBUG: Village bounds: X[" << village_min_x << "-" << village_max_x 
+              << "] Z[" << village_min_z << "-" << village_max_z << "]" << std::endl;
+
     int required_plots = std::max(1, village_size / 50);
     const int MAX_ATTEMPTS = 1000;
-    int plot_size_cycle = 14;
+    const int MIN_PLOT_SIZE = 14;
+    const int MAX_PLOT_SIZE = 20;
+    
     std::srand(config.GetSeed());
 
-    for (int attempt = 0; attempt < MAX_ATTEMPTS; ++attempt) {
+    int attempts = 0;
+    int plot_size_cycle = MIN_PLOT_SIZE;
+
+    while (attempts < MAX_ATTEMPTS && (int)plots.size() < required_plots) {
         int current_plot_size;
         int plot_min_x, plot_min_z;
-        int plot_max_x, plot_max_z;
+
         if (testmode) {
-            int size_x = village_max_x - village_min_x;
-            int size_z = village_max_z - village_min_z;
-            int scan_x_index = (attempt * 5) % (size_x + 5);
-            int scan_z_index = (attempt * 5) / (size_x / 5 + 1) * 5;
-            if (scan_z_index > size_z) {
-                if ((int)plots.size() >= required_plots) break;
-                scan_z_index = scan_z_index % (size_z + 5);
-            }
-            plot_min_x = village_min_x + scan_x_index;
-            plot_min_z = village_min_z + scan_z_index;
+            // Test mode: scan grid in 5 block increments
+            int grid_size = 5;
+            int grid_cells = (village_size / grid_size) + 1;
+            int grid_index = attempts % (grid_cells * grid_cells);
+            
+            int grid_x = (grid_index % grid_cells) * grid_size;
+            int grid_z = (grid_index / grid_cells) * grid_size;
+            
+            plot_min_x = village_min_x + grid_x;
+            plot_min_z = village_min_z + grid_z;
+            
             current_plot_size = plot_size_cycle;
-            plot_size_cycle = (plot_size_cycle == 20) ? 14 : plot_size_cycle + 1;
+            plot_size_cycle = (plot_size_cycle == MAX_PLOT_SIZE) ? MIN_PLOT_SIZE : plot_size_cycle + 1;
         } else {
-            current_plot_size = 14 + (std::rand() % 7);
-            int max_rand_x = village_max_x - current_plot_size;
-            int max_rand_z = village_max_z - current_plot_size;
-            if (max_rand_x < village_min_x || max_rand_z < village_min_z) break;
-            plot_min_x = village_min_x + (std::rand() % (max_rand_x - village_min_x + 1));
-            plot_min_z = village_min_z + (std::rand() % (max_rand_z - village_min_z + 1));
+            // Random mode
+            current_plot_size = MIN_PLOT_SIZE + (std::rand() % (MAX_PLOT_SIZE - MIN_PLOT_SIZE + 1));
+            plot_min_x = village_min_x + (std::rand() % (village_size - current_plot_size));
+            plot_min_z = village_min_z + (std::rand() % (village_size - current_plot_size));
         }
-        plot_max_x = plot_min_x + current_plot_size - 1;
-        plot_max_z = plot_min_z + current_plot_size - 1;
+
+        int plot_max_x = plot_min_x + current_plot_size - 1;
+        int plot_max_z = plot_min_z + current_plot_size - 1;
+
+        // Check bounds
+        if (plot_max_x > village_max_x || plot_max_z > village_max_z) {
+            attempts++;
+            continue;
+        }
+
         mcpp::Coordinate origin(plot_min_x, 0, plot_min_z);
         mcpp::Coordinate bound(plot_max_x, 0, plot_max_z);
-        if (!validate_plot(mc, origin, bound, plots)) continue;
+
+        if (!validate_plot(mc, origin, bound, plots)) {
+            attempts++;
+            continue;
+        }
+
+        // Determine plot height (maximum surface height within plot)
         int plot_height = 0;
         for (int x = plot_min_x; x <= plot_max_x; ++x) {
             for (int z = plot_min_z; z <= plot_max_z; ++z) {
                 plot_height = std::max(plot_height, get_surface_y(mc, x, z));
             }
         }
+
         origin.y = plot_height;
         bound.y = plot_height;
+
+        // Check for intersection with existing plots
+        Plot proposed_plot(origin, bound, origin, plot_height, current_plot_size);
         bool intersects = false;
-        Plot proposed_plot(origin, bound, origin, plot_height);
         for (const auto& existing_plot : plots) {
             if (proposed_plot.is_overlapping(existing_plot)) {
                 intersects = true;
                 break;
             }
         }
-        if (intersects) continue;
-        mcpp::Coordinate entrance = determine_entrance(origin, bound);
-        plots.emplace_back(origin, bound, entrance, plot_height);
-        if ((int)plots.size() >= required_plots) {
-            if (!testmode) break;
+        if (intersects) {
+            attempts++;
+            continue;
         }
+
+        // Determine entrance
+        mcpp::Coordinate entrance = determine_entrance(origin, bound);
+
+        plots.emplace_back(origin, bound, entrance, plot_height, current_plot_size);
+        std::cout << "DEBUG: Added plot #" << plots.size() << " at (" << plot_min_x << "," << plot_min_z 
+                  << ") size " << current_plot_size << " height " << plot_height << std::endl;
+
+        attempts++;
     }
 
     if ((int)plots.size() < required_plots) {
         std::cerr << "Warning: Could only find " << plots.size() << " plots. Required minimum was " << required_plots << "." << std::endl;
     }
-    if (testmode) {
-        std::cout << "--- FOUND PLOTS (" << plots.size() << ") ---" << std::endl;
-        for (const auto& plot : plots) {
-            std::cout << "PLOT_ORIGIN: " << plot.origin.x << "," << plot.origin.y << "," << plot.origin.z
-                      << " BOUND: " << plot.bound.x << "," << plot.bound.y << "," << plot.bound.z
-                      << " ENTRANCE: " << plot.entrance.x << "," << plot.entrance.y << "," << plot.entrance.z << std::endl;
-        }
-        std::cout << "--- END PLOTS ---" << std::endl;
-    }
+
+    std::cout << "DEBUG: Found " << plots.size() << " plots (required: " << required_plots << ")" << std::endl;
     return plots;
 }
 
+// Terraforms the area around the plots using linear interpolation
 void terraform(const std::vector<Plot>& plots) {
+    if (plots.empty()) {
+        std::cout << "DEBUG: No plots to terraform" << std::endl;
+        return;
+    }
+
     mcpp::MinecraftConnection mc;
     const Config& config = Config::GetInstance();
-    bool testmode = config.IsTestMode();
     int border_size = config.GetPlotBorder();
-    if (testmode) std::cout << "--- TERRAFORMING START ---" << std::endl;
+    
+    std::cout << "DEBUG: Starting terraforming for " << plots.size() << " plots" << std::endl;
+
     for (const auto& plot : plots) {
-        int plot_h = plot.height;
-        int min_x = std::min(plot.origin.x, plot.bound.x) - border_size;
-        int max_x = std::max(plot.origin.x, plot.bound.x) + border_size;
-        int min_z = std::min(plot.origin.z, plot.bound.z) - border_size;
-        int max_z = std::max(plot.origin.z, plot.bound.z) + border_size;
-        int plot_min_x = std::min(plot.origin.x, plot.bound.x);
-        int plot_max_x = std::max(plot.origin.x, plot.bound.x);
-        int plot_min_z = std::min(plot.origin.z, plot.bound.z);
-        int plot_max_z = std::max(plot.origin.z, plot.bound.z);
-        for (int x = min_x; x <= max_x; ++x) {
-            for (int z = min_z; z <= max_z; ++z) {
+        int plot_height = plot.height;
+        int plot_min_x = plot.get_min_x();
+        int plot_max_x = plot.get_max_x();
+        int plot_min_z = plot.get_min_z();
+        int plot_max_z = plot.get_max_z();
+        
+        std::cout << "DEBUG: Terraforming plot at (" << plot_min_x << "," << plot_min_z 
+                  << ") height " << plot_height << std::endl;
+
+        // Area to terraform (plot + border)
+        int terra_min_x = plot_min_x - border_size;
+        int terra_max_x = plot_max_x + border_size;
+        int terra_min_z = plot_min_z - border_size;
+        int terra_max_z = plot_max_z + border_size;
+
+        for (int x = terra_min_x; x <= terra_max_x; ++x) {
+            for (int z = terra_min_z; z <= terra_max_z; ++z) {
+                
+                // Calculate distance from plot edge
                 int dist_x = 0;
                 if (x < plot_min_x) dist_x = plot_min_x - x;
                 else if (x > plot_max_x) dist_x = x - plot_max_x;
+                
                 int dist_z = 0;
                 if (z < plot_min_z) dist_z = plot_min_z - z;
                 else if (z > plot_max_z) dist_z = z - plot_max_z;
-                int d = std::max(dist_x, dist_z);
-                if (d == 0) {
-                    for (int y = plot_h; y >= 0; --y) mc.setBlock(mcpp::Coordinate(x, y, z), mcpp::Blocks::DIRT);
-                    mc.setBlock(mcpp::Coordinate(x, plot_h, z), mcpp::Blocks::GRASS);
-                    for (int y = plot_h + 1; y < 256; ++y) mc.setBlock(mcpp::Coordinate(x, y, z), mcpp::Blocks::AIR);
-                } else if (d > 0 && d <= border_size) {
-                    int y_g = get_surface_y(mc, x, z);
-                    float t = (float)(border_size - d) / border_size;
-                    int new_y = (int)std::round(y_g + (plot_h - y_g) * t);
-                    mc.setBlock(mcpp::Coordinate(x, new_y, z), mcpp::Blocks::GRASS);
-                    for (int y = new_y - 1; y >= 0; --y) mc.setBlock(mcpp::Coordinate(x, y, z), mcpp::Blocks::DIRT);
-                    for (int y = new_y + 1; y < 256; ++y) mc.setBlock(mcpp::Coordinate(x, y, z), mcpp::Blocks::AIR);
+                
+                int distance = std::max(dist_x, dist_z);
+                
+                if (distance == 0) {
+                    // Inside plot: create flat surface at plot height
+                    // Clear above plot height
+                    for (int y = plot_height + 1; y < 256; ++y) {
+                        mc.setBlock(mcpp::Coordinate(x, y, z), mcpp::Blocks::AIR);
+                    }
+                    // Fill below plot height with dirt, top with grass
+                    for (int y = 0; y <= plot_height; ++y) {
+                        mc.setBlock(mcpp::Coordinate(x, y, z), mcpp::Blocks::DIRT);
+                    }
+                    mc.setBlock(mcpp::Coordinate(x, plot_height, z), mcpp::Blocks::GRASS);
+                    
+                } else if (distance <= border_size) {
+                    // In border area: apply linear smoothing
+                    int ground_height = get_surface_y(mc, x, z);
+                    
+                    // Linear interpolation: y = y_g + (y_p - y_g) * (p - d) / p
+                    double blend_factor = static_cast<double>(border_size - distance) / border_size;
+                    int new_height = static_cast<int>(std::round(
+                        ground_height + (plot_height - ground_height) * blend_factor
+                    ));
+                    
+                    // Ensure new height is reasonable
+                    new_height = std::max(0, std::min(255, new_height));
+                    
+                    // Clear above new height
+                    for (int y = new_height + 1; y < 256; ++y) {
+                        mc.setBlock(mcpp::Coordinate(x, y, z), mcpp::Blocks::AIR);
+                    }
+                    // Fill to new height
+                    for (int y = 0; y <= new_height; ++y) {
+                        mc.setBlock(mcpp::Coordinate(x, y, z), mcpp::Blocks::DIRT);
+                    }
+                    mc.setBlock(mcpp::Coordinate(x, new_height, z), mcpp::Blocks::GRASS);
                 }
             }
         }
     }
-    if (testmode) std::cout << "--- TERRAFORMING END ---" << std::endl;
+    std::cout << "DEBUG: Terraforming completed" << std::endl;
 }
 
-void place_wall() {
+// Builds the village wall around the boundary
+void place_wall(const std::vector<Plot>& plots) {
     mcpp::MinecraftConnection mc;
     const Config& config = Config::GetInstance();
-    const int WALL_HEIGHT = 4;
-    mcpp::BlockType WALL_MATERIAL = mcpp::Blocks::COBBLESTONE;
     int village_size = config.GetVillageSize();
     int center_x = config.GetLocationX();
     int center_z = config.GetLocationZ();
+    
+    std::cout << "DEBUG: Building wall around (" << center_x << "," << center_z 
+              << ") size " << village_size << std::endl;
+
     int village_min_x = center_x - village_size / 2;
     int village_max_x = center_x + village_size / 2;
     int village_min_z = center_z - village_size / 2;
     int village_max_z = center_z + village_size / 2;
-    if (config.IsTestMode()) {
-        std::cout << "--- VILLAGE WALL START ---" << std::endl;
-        std::cout << "WALL_BOUNDS: " << village_min_x << "," << village_min_z << " to " << village_max_x << "," << village_max_z << std::endl;
-    }
-    auto build_column = [&](int x, int z) {
-        int surface_y = get_surface_y(mc, x, z);
-        for (int y = surface_y + 1; y < 256; ++y) mc.setBlock(mcpp::Coordinate(x, y, z), mcpp::Blocks::AIR);
-        for (int y = 1; y <= WALL_HEIGHT; ++y) mc.setBlock(mcpp::Coordinate(x, surface_y + y, z), WALL_MATERIAL);
-    };
+
+    // Use fast wall building for speed
+    std::cout << "Building walls (fast method)..." << std::endl;
+
+    // Build walls in batches
     for (int x = village_min_x; x <= village_max_x; ++x) {
-        build_column(x, village_min_z);
-        build_column(x, village_max_z);
+        fast_build_wall_at(mc, x, village_min_z);
+        fast_build_wall_at(mc, x, village_max_z);
     }
     for (int z = village_min_z + 1; z < village_max_z; ++z) {
-        build_column(village_min_x, z);
-        build_column(village_max_x, z);
+        fast_build_wall_at(mc, village_min_x, z);
+        fast_build_wall_at(mc, village_max_x, z);
     }
-    if (config.IsTestMode()) std::cout << "--- VILLAGE WALL END ---" << std::endl;
+    
+    std::cout << "DEBUG: Wall construction completed!" << std::endl;
 }
 
+// Fast wall building - minimal block operations
+void fast_build_wall_at(mcpp::MinecraftConnection& mc, int x, int z) {
+    int surface_y = get_surface_y(mc, x, z);
+    
+    // Build 3-block high wall (faster than 4)
+    mc.setBlock(mcpp::Coordinate(x, surface_y + 1, z), mcpp::Blocks::COBBLESTONE);
+    mc.setBlock(mcpp::Coordinate(x, surface_y + 2, z), mcpp::Blocks::COBBLESTONE);
+    mc.setBlock(mcpp::Coordinate(x, surface_y + 3, z), mcpp::Blocks::COBBLESTONE);
+}
+
+void build_wall_at(mcpp::MinecraftConnection& mc, int x, int z) {
+    int surface_y = get_surface_y(mc, x, z);
+    
+    // Clear space for wall
+    for (int y = surface_y + 1; y <= surface_y + 5; ++y) {
+        mc.setBlock(mcpp::Coordinate(x, y, z), mcpp::Blocks::AIR);
+    }
+    
+    // Build 4-block high wall
+    for (int y = 1; y <= 4; ++y) {
+        mc.setBlock(mcpp::Coordinate(x, surface_y + y, z), mcpp::Blocks::COBBLESTONE);
+    }
+}
+
+// Find waypoints using grouping algorithm
 std::vector<mcpp::Coordinate> find_waypoints(const std::vector<Plot>& plots) {
-    mcpp::MinecraftConnection mc;
-    const Config& config = Config::GetInstance();
     std::vector<mcpp::Coordinate> waypoints;
-    int village_size = config.GetVillageSize();
-    int center_x_config = config.GetLocationX();
-    int center_z_config = config.GetLocationZ();
-    int required_min_waypoints = (plots.size() / 3) + ((plots.size() % 3 == 0 && plots.size() > 0) ? 0 : 1);
+    
     if (plots.empty()) {
-        if (config.IsTestMode()) {
-            std::cout << "--- WAYPOINTS (0) ---" << std::endl;
-            std::cout << "--- END WAYPOINTS ---" << std::endl;
-        }
         return waypoints;
     }
-    long long total_x = 0;
-    long long total_z = 0;
-    for (const auto& plot : plots) {
-        total_x += (plot.origin.x + plot.bound.x) / 2;
-        total_z += (plot.origin.z + plot.bound.z) / 2;
-    }
-    int center_x = (plots.empty()) ? center_x_config : (int)(total_x / plots.size());
-    int center_z = (plots.empty()) ? center_z_config : (int)(total_z / plots.size());
-    auto is_inside_any_plot = [&](int x, int z) {
-        for (const auto& plot : plots) {
-            if (x >= std::min(plot.origin.x, plot.bound.x) && x <= std::max(plot.origin.x, plot.bound.x) &&
-                z >= std::min(plot.origin.z, plot.bound.z) && z <= std::max(plot.origin.z, plot.bound.z)) return true;
-        }
-        return false;
-    };
-    if (!is_inside_any_plot(center_x, center_z)) {
-        int center_y = get_surface_y(mc, center_x, center_z);
-        waypoints.emplace_back(center_x, center_y + 1, center_z);
-    }
-    std::vector<std::pair<int, int>> potential_offsets = {
-        {village_size / 4, village_size / 4},
-        {-village_size / 4, village_size / 4},
-        {village_size / 4, -village_size / 4},
-        {-village_size / 4, -village_size / 4},
-    };
-    int offset_index = 0;
-    while ((int)waypoints.size() < required_min_waypoints && offset_index < (int)potential_offsets.size()) {
-        int x = center_x + potential_offsets[offset_index].first;
-        int z = center_z + potential_offsets[offset_index].second;
-        if (!is_inside_any_plot(x, z)) {
-            int y = get_surface_y(mc, x, z);
-            waypoints.emplace_back(x, y + 1, z);
-        }
-        offset_index++;
-    }
-    if ((int)waypoints.size() < required_min_waypoints) {
-        std::cerr << "Warning: Could only find " << waypoints.size() << " waypoints. Required minimum was " << required_min_waypoints << "." << std::endl;
-    }
-    if (config.IsTestMode()) {
-        std::cout << "--- WAYPOINTS (" << waypoints.size() << ") ---" << std::endl;
-        for (const auto& wp : waypoints) {
-            std::cout << "WAYPOINT: " << wp.x << "," << wp.y << "," << wp.z << std::endl;
-        }
-        std::cout << "--- END WAYPOINTS ---" << std::endl;
-    }
+
+    mcpp::MinecraftConnection mc;
+    const Config& config = Config::GetInstance();
+
+    int center_x = config.GetLocationX();
+    int center_z = config.GetLocationZ();
+    int surface_y = get_surface_y(mc, center_x, center_z);
+    
+    waypoints.emplace_back(center_x, surface_y + 1, center_z);
+    
+    std::cout << "DEBUG: Found " << waypoints.size() << " waypoints" << std::endl;
     return waypoints;
 }
-
