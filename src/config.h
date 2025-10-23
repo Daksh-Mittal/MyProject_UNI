@@ -2,30 +2,38 @@
 #define CONFIG_H
 
 #include <mcpp/mcpp.h>
-
-// forward declaration
-class Config;
+#include <map>
+#include "enums/room_type.h"
 
 class Config {
   public:
     static Config& GetInstance();
+    ~Config();
     
-    void ApplyConfiguration(bool isTestMode, mcpp::Coordinate2D* location, int villageSize, int plotBorder, int* seed);
+    void ApplyConfiguration(const int argc, const char *argv[]);
+    void ApplyConfiguration(std::map<std::string, std::string> config);
+    void SetMinecraftConnection(mcpp::MinecraftConnection* mc);
 
     bool IsTestMode() const;
+    std::string GetTestedComponentName() const;
+    int GetTestCase() const;
     mcpp::Coordinate2D* GetLocation() const;
     int GetVillageSize() const;
     int GetPlotBorder() const;
     int GetSeed() const;
+    mcpp::MinecraftConnection* GetMinecraftConnection() const;
 
   private:
     Config();
 
-    bool isTestMode;
-    mcpp::Coordinate2D* location;
-    int villageSize;
-    int plotBorder;
-    int* seed;
+    std::string testingComponent = "";
+    mcpp::Coordinate2D* location = nullptr;
+    mcpp::MinecraftConnection* mc = nullptr;
+    bool isTestMode = false;
+    int testCase = -1;
+    int villageSize = 0;
+    int plotBorder = 0;
+    int* seed = nullptr;
 
     // config is a singleton, so we must disallow copying and assignment
     Config(const Config&) = delete;
