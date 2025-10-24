@@ -2,8 +2,9 @@
 #define PLOT_REGION_H
 
 #include <mcpp/mcpp.h>
-#include "../Plot/plot.h"
-#include "../../enums/axis.h"
+#include "models/Plot/plot.h"
+#include "enums/axis.h"
+#include "config.h"
 
 // need a forward declaration here to avoid a circular dependency
 class Room;
@@ -13,10 +14,12 @@ class PlotRegion {
   friend class Room;
 
   public:
-    Axis GetSubdivisionAxis(bool isTestMode);
-    PlotRegion Subdivide(Axis axis, bool isTestMode);
-    int GetLength();
-    int GetWidth();
+    Axis GetSubdivisionAxis();
+    PlotRegion Subdivide(Axis axis);
+    mcpp::Coordinate GetTopLeftCorner() const;
+    mcpp::Coordinate GetBottomRightCorner() const;
+    int GetLength() const;
+    int GetWidth() const;
 
     PlotRegion(mcpp::Coordinate corner1, mcpp::Coordinate corner2);
     PlotRegion(Plot plot);
