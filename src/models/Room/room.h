@@ -11,7 +11,7 @@
 #include "enums/side.h"
 
 // forward declaration
-struct Plot;
+class Plot;
 
 class Room {
   friend class Floor;
@@ -47,4 +47,5 @@ class Room {
 };
 
 #endif
+
 
