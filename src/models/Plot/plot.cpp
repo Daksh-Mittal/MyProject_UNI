@@ -1,8 +1,7 @@
 #include "plot.h"
 #include <algorithm>
 
-Plot::Plot(mcpp::Coordinate origin, mcpp::Coordinate bound, mcpp::Coordinate entrance, int height, int size) 
-    : origin(origin), bound(bound), entrance(entrance), height(height), size(size) {}
+Plot::Plot(mcpp::Coordinate origin, mcpp::Coordinate bound) : origin(origin), bound(bound) {}
 
 int Plot::get_min_x() const {
     return std::min(origin.x, bound.x);
@@ -31,7 +30,7 @@ int Plot::get_depth() const {
 mcpp::Coordinate Plot::get_center() const {
     return mcpp::Coordinate(
         (get_min_x() + get_max_x()) / 2,
-        height,
+        origin.y,
         (get_min_z() + get_max_z()) / 2
     );
 }
