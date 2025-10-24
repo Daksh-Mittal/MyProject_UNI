@@ -3,19 +3,19 @@
 PlotRegion::PlotRegion(mcpp::Coordinate corner1, mcpp::Coordinate corner2) : corner1(corner1), corner2(corner2) {}
 PlotRegion::PlotRegion(Plot plot) : corner1(plot.origin), corner2(plot.bound) {}
 
-int PlotRegion::GetLength() {
+int PlotRegion::GetLength() const {
   return std::abs(corner1.x - corner2.x);
 }
 
-int PlotRegion::GetWidth() {
+int PlotRegion::GetWidth() const {
   return std::abs(corner1.z - corner2.z);
 }
 
-Axis PlotRegion::GetSubdivisionAxis(bool isTestMode) {
+Axis PlotRegion::GetSubdivisionAxis() {
   Axis axis = Axis::None;
 
   if (GetLength() >= MAX_SIZE && GetWidth() >= MAX_SIZE) {
-    if (isTestMode) {
+    if (Config::GetInstance().IsTestMode()) {
       // take the longer of the two sides if both are suitable candidates. this is required by specification but doesn't ultimately matter?
       axis = (GetLength() >= GetWidth()) ? Axis::X : Axis::Z;
     }
@@ -35,13 +35,13 @@ Axis PlotRegion::GetSubdivisionAxis(bool isTestMode) {
 
 // Mutates this PlotRegion and creates a new one
 // (Minimises unnecessary memory usage)
-PlotRegion PlotRegion::Subdivide(Axis axis, bool isTestMode=false) {
+PlotRegion PlotRegion::Subdivide(Axis axis) {
   //PlotRegion *regionPtr = nullptr; // TODO: style guide prohibits multiple return statements but we will use it for now to avoid errors
 
   if (axis == Axis::X) {
     int point = std::min(corner1.x, corner2.x) + MIN_SIZE;
 
-    if (isTestMode) {
+    if (Config::GetInstance().IsTestMode()) {
       point = (corner1.x + corner2.x) / 2; // midpoint in test mode
     }
     else {
@@ -64,7 +64,7 @@ PlotRegion PlotRegion::Subdivide(Axis axis, bool isTestMode=false) {
   else if (axis == Axis::Z) {
     int point = corner1.z + MIN_SIZE;
 
-    if (isTestMode) {
+    if (Config::GetInstance().IsTestMode()) {
       point = (corner1.z + corner2.z) / 2; // midpoint in test mode
     }
     else {
@@ -87,4 +87,12 @@ PlotRegion PlotRegion::Subdivide(Axis axis, bool isTestMode=false) {
 
   throw std::invalid_argument("NEVER");
   //return *regionPtr;
+}
+
+mcpp::Coordinate PlotRegion::GetTopLeftCorner() const {
+  return corner1;
+}
+
+mcpp::Coordinate PlotRegion::GetBottomRightCorner() const {
+  return corner2;
 }
