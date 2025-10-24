@@ -3,6 +3,12 @@
 #include <cmath>
 #include <algorithm>
 #include "models/Node/queue.h"
+#include <unordered_map>
+
+//global cache so height lookups are reused across all bfs calls
+static std::unordered_map<long long, int> global_height_cache;
+//helper to pack x and z into one long long for cache
+static auto cache_key = [](int x, int z){return ((long long)x << 32) ^ (unsigned)z;};
 
 // gets the surface height, keeps going down if block is leaf/wood to avoid trees, note to self: (remove if trees are cleared during terrain generation)
 static inline int surfaceYStand(mcpp::MinecraftConnection& mc, int x, int z) {
@@ -61,7 +67,7 @@ void breadth_first_search(Path& newPath, mcpp::MinecraftConnection& mc) {
     auto iz = [&](int z){return z - minZ;};
     auto inb = [&](int x, int z){return x >= minX && z >= minZ && x < minX + L && z < minZ + W;};
 
-    //store heights and mark which spots is solid ground
+    //store heights and mark which spots is solid ground, reuse from global cache if found
     int** H = new int*[L];
     std::vector<std::vector<bool>> solid(L, std::vector<bool>(W, false));
 
@@ -69,7 +75,17 @@ void breadth_first_search(Path& newPath, mcpp::MinecraftConnection& mc) {
         H[i] = new int[W];
         for (int j=0; j<W; ++j){
             int x = minX + i, z = minZ + j;
-            H[i][j] = surfaceYStand(mc, x, z);
+            long long k = cache_key(x, z);
+            int height;
+            //check if height is already saved in cache
+            if (global_height_cache.count(k)) {
+                height = global_height_cache[k];
+            } else {
+                height = surfaceYStand(mc, x, z);
+                global_height_cache[k] = height;
+            }
+            H[i][j] = height;
+
             auto under = mc.getBlock({x, H[i][j] - 1, z});
             solid[i][j] = !(under==mcpp::Blocks::AIR || under == mcpp::Blocks::STILL_WATER);
         }
@@ -109,7 +125,6 @@ void breadth_first_search(Path& newPath, mcpp::MinecraftConnection& mc) {
             int nY = H[I][J];
             int cY = cur.y;
 
-            
             if(std::abs(cY - nY) > 1) continue;
             if(!solid[I][J]) continue;
 
