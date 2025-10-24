@@ -1,4 +1,3 @@
-
 #include "task_a.h"
 #include "config.h"
 #include "models/Plot/plot.h"
@@ -71,8 +70,9 @@ bool validate_plot(mcpp::MinecraftConnection& mc, const mcpp::Coordinate& origin
     
     // Check border intersection with village boundary
     int village_size = config.GetVillageSize();
-    int center_x = config.GetLocationX();
-    int center_z = config.GetLocationZ();
+    mcpp::Coordinate2D* location = config.GetLocation();
+    int center_x = location->x;
+    int center_z = location->z;
     
     int village_min_x = center_x - village_size / 2;
     int village_max_x = center_x + village_size / 2;
@@ -102,8 +102,9 @@ mcpp::Coordinate determine_entrance(const mcpp::Coordinate& origin, const mcpp::
     int min_z = std::min(origin.z, bound.z);
     int max_z = std::max(origin.z, bound.z);
     int plot_height = origin.y;
-    int center_x = config.GetLocationX();
-    int center_z = config.GetLocationZ();
+    mcpp::Coordinate2D* location = config.GetLocation();
+    int center_x = location->x;
+    int center_z = location->z;
 
     // Calculate distance of each edge to the village center
     int dist_to_bottom_edge = std::abs(center_z - min_z);
@@ -143,8 +144,9 @@ std::vector<Plot> find_plots() {
     const Config& config = Config::GetInstance();
     std::vector<Plot> plots;
     int village_size = config.GetVillageSize();
-    int center_x = config.GetLocationX();
-    int center_z = config.GetLocationZ();
+    mcpp::Coordinate2D* location = config.GetLocation();
+    int center_x = location->x;
+    int center_z = location->z;
     bool testmode = config.IsTestMode();
    // int plot_border = config.GetPlotBorder();
 
@@ -269,11 +271,11 @@ void terraform(const std::vector<Plot>& plots) {
     std::cout << "DEBUG: Starting terraforming for " << plots.size() << " plots" << std::endl;
 
     for (const auto& plot : plots) {
-        int plot_height = plot.height;
-        int plot_min_x = plot.get_min_x();
-        int plot_max_x = plot.get_max_x();
-        int plot_min_z = plot.get_min_z();
-        int plot_max_z = plot.get_max_z();
+        int plot_height = plot.origin.y;
+        int plot_min_x = std::min(plot.origin.x, plot.bound.x);
+        int plot_max_x = std::max(plot.origin.x, plot.bound.x);
+        int plot_min_z = std::min(plot.origin.z, plot.bound.z);
+        int plot_max_z = std::max(plot.origin.z, plot.bound.z);
         
         std::cout << "DEBUG: Terraforming plot at (" << plot_min_x << "," << plot_min_z 
                   << ") height " << plot_height << std::endl;
@@ -344,8 +346,9 @@ void place_wall(const std::vector<Plot>& plots) {
     mcpp::MinecraftConnection mc;
     const Config& config = Config::GetInstance();
     int village_size = config.GetVillageSize();
-    int center_x = config.GetLocationX();
-    int center_z = config.GetLocationZ();
+    mcpp::Coordinate2D* location = config.GetLocation();
+    int center_x = location->x;
+    int center_z = location->z;
     
     std::cout << "DEBUG: Building wall around (" << center_x << "," << center_z 
               << ") size " << village_size << std::endl;
@@ -406,8 +409,9 @@ std::vector<mcpp::Coordinate> find_waypoints(const std::vector<Plot>& plots) {
     mcpp::MinecraftConnection mc;
     const Config& config = Config::GetInstance();
 
-    int center_x = config.GetLocationX();
-    int center_z = config.GetLocationZ();
+    mcpp::Coordinate2D* location = config.GetLocation();
+    int center_x = location->x;
+    int center_z = location->z;
     int surface_y = get_surface_y(mc, center_x, center_z);
     
     waypoints.emplace_back(center_x, surface_y + 1, center_z);
