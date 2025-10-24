@@ -67,16 +67,16 @@ std::vector<Waypoint> Prim(mcpp::Coordinate start, std::vector<Waypoint> waypoin
 }
 
 //builds adjacency list from parent array, basically connects each child waypoint to its parent
-std::map<Waypoint, std::vector<Waypoint>> createAJL(std::vector<Waypoint>& parent, std::vector<Waypoint>& waypoints) {
-    std::map<Waypoint, std::vector<Waypoint>> adj;
+std::map<std::pair<int,int>, std::vector<Waypoint>> createAJL(std::vector<Waypoint>& parent, std::vector<Waypoint>& waypoints) {
+
+    std::map<std::pair<int,int>, std::vector<Waypoint>> adj;
+
     for (size_t i = 0; i < parent.size(); ++i) {
-        if (i == 0) continue; //skip the first one cause its root
+        if (i == 0) continue;
         Waypoint p = parent[i];
         Waypoint c = waypoints[i];
-
-        //connect two to each other.
-        adj[p].push_back(c);
-        adj[c].push_back(p);
+        adj[{p.x,p.z}].push_back(c);
+        adj[{c.x,c.z}].push_back(p);
     }
     return adj;
 }
