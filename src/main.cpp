@@ -71,6 +71,19 @@ int main(const int argc, const char *argv[]) {
 
             std::cout << "\t Connecting buildings to waypoints with more fancy paths..." << std::endl ;
             connect_buildings(waypoints, pointerisedPlots, mc);
+            //builds light pole
+            for (auto& wp : waypoints) {
+                int groundY = mc.getHeight(mcpp::Coordinate2D(wp.x, wp.z));
+                auto b = mc.getBlock({wp.x, groundY, wp.z});
+                while (b == mcpp::Blocks::GRAVEL || b == mcpp::Blocks::OAK_FENCE || b == mcpp::Blocks::GLOWSTONE) {
+                    --groundY;
+                    b = mc.getBlock({wp.x, groundY, wp.z});
+                }
+                for (int h = 0; h < 3; ++h) {
+                    mc.setBlock({wp.x, groundY + 1 + h, wp.z}, mcpp::Blocks::OAK_FENCE);
+                }
+                mc.setBlock({wp.x, groundY + 4, wp.z}, mcpp::Blocks::GLOWSTONE);
+            }
         }
     }
     catch(std::exception exception) {
@@ -80,5 +93,3 @@ int main(const int argc, const char *argv[]) {
 
     return returnCode;
 }
-
-
