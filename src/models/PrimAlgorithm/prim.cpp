@@ -5,6 +5,7 @@
 #include <map>
 #include <cmath>
 #include <iostream>
+#include <climits>
 
 //calculates. the distance between two coordinates
 double calc_dist(int u, int v, const std::vector<Waypoint>& waypoints) {
@@ -80,3 +81,4 @@ std::map<std::pair<int,int>, std::vector<Waypoint>> createAJL(std::vector<Waypoi
     }
     return adj;
 }
+
