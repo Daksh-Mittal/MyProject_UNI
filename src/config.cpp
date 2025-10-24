@@ -136,4 +136,3 @@ Config::~Config() {
     delete location;
   }
 }
-
