@@ -3,24 +3,33 @@
 
 #include <mcpp/mcpp.h>
 #include <vector>
-#include "../PlotRegion/plot_region.h"
-#include "../RoomRelationship/room_relationship.h"
-#include "../Floor/floor.h"
-#include "../../enums/corner.h"
-#include "../../enums/room_type.h"
-#include "../../enums/side.h"
+#include "models/PlotRegion/plot_region.h"
+#include "models/RoomRelationship/room_relationship.h"
+#include "models/Floor/floor.h"
+#include "enums/corner.h"
+#include "enums/room_type.h"
+#include "enums/side.h"
+
+// forward declaration
+struct Plot;
 
 class Room {
   friend class Floor;
 
   public:
     void SetRoomType(RoomType roomType);
+    RoomType GetRoomType() const;
 
-    RoomRelationship* GetRelationship(Side);
-    mcpp::Coordinate GetCorner(Corner);
-    mcpp::Coordinate GetMidpointOnSide(Side);
-    bool IsMidpointObstructed(Side);
-    bool IsPointOnSide(Side side, mcpp::Coordinate point);
+    RoomRelationship* GetRelationship(Side) const;
+    mcpp::Coordinate GetCorner(Corner) const;
+    mcpp::Coordinate GetUsableCorner(Corner) const;
+    mcpp::Coordinate GetMidpointOnSide(Side) const;
+    mcpp::Coordinate GetCentre(int height) const;
+    bool IsMidpointObstructed(Side) const;
+    bool IsPointOnSide(Side side, mcpp::Coordinate point) const;
+    std::vector<Side> GetExteriorSides(Plot plot) const;
+    std::vector<Side> GetExteriorSides(Plot plot, bool verbose) const;
+    
     Room(PlotRegion region);
 
   private:
@@ -38,3 +47,4 @@ class Room {
 };
 
 #endif
+
