@@ -48,21 +48,21 @@ int main(const int argc, const char *argv[]) {
             std::cout << "\t Doing some landscaping..." << std::endl ;
 
             // Insert terraforming here.
-            terraform() ;
+            terraform(plots) ;
 
             // Insert Placing a wall here.
             std::cout << "\t Placing a cool wall around the village..." << std::endl ;
-            place_wall() ;
+            place_wall(plots) ;
 
             // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
             // Task B
             std::cout << "Task B: Building Houses" << std::endl ;
-            buildBuildings(pointerisePlotVector(plots));
+            std::vector<Plot*> pointerisedPlots = pointerisePlotVector(plots);
+            buildBuildings(pointerisedPlots);
 
             // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
             // Task C
             std::cout << "Task C: Building Houses" << std::endl ;
-            std::vector<Plot> p = find_plots();
             std::vector<Waypoint> waypoints = get_waypoints();
             mcpp::Coordinate start(waypoints[0].x, waypoints[0].y, waypoints[0].z);
 
@@ -70,7 +70,7 @@ int main(const int argc, const char *argv[]) {
             connect_waypoints(start, waypoints, mc);
 
             std::cout << "\t Connecting buildings to waypoints with more fancy paths..." << std::endl ;
-            connect_buildings(waypoints, p, mc);
+            connect_buildings(waypoints, pointerisedPlots, mc);
         }
     }
     catch(std::exception exception) {
@@ -81,8 +81,4 @@ int main(const int argc, const char *argv[]) {
     return returnCode;
 }
 
-
-
-    return 0;
-}
 
