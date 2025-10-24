@@ -52,7 +52,7 @@ void buildBuildings(std::vector<Plot*> plots) {
     plot->buildingHeight = buildingHeight ++;
 
     buildExterior(plot, canvas);
-    std::unique_ptr<Floor> floor = subdivideInterior(plot, canvas);
+    Floor* floor = subdivideInterior(plot, canvas);
     decorateInterior(floor, canvas);
   }
 }
@@ -77,12 +77,12 @@ void buildExterior(Plot* plot, Canvas& canvas) {
   canvas.Clear();
 }
 
-std::unique_ptr<Floor> subdivideInterior(Plot* plot, Canvas& canvas) {
-  std::vector<std::shared_ptr<Room>>* rooms = new std::vector<std::shared_ptr<Room>>;
+Floor* subdivideInterior(Plot* plot, Canvas& canvas) {
+  std::vector<Room*>* rooms = new std::vector<Room*>;
   std::vector<PlotRegion> plotRegions = subdividePlot(*plot);
 
   for (PlotRegion region : plotRegions) {
-    std::shared_ptr<Room> room = std::make_unique<Room>(region);
+    Room* room = new Room(region);
 
     mcpp::Coordinate topLeft = room->GetCorner(Corner::TopLeft) + mcpp::Coordinate(0, 1, 0);
     mcpp::Coordinate topRight = room->GetCorner(Corner::TopRight) + mcpp::Coordinate(0, 1, 0);
@@ -98,7 +98,7 @@ std::unique_ptr<Floor> subdivideInterior(Plot* plot, Canvas& canvas) {
     rooms->push_back(room);
   }
 
-  std::unique_ptr<Floor> floor = std::make_unique<Floor>(rooms, plot);
+  Floor* floor = new Floor(rooms, plot);
   floor->AssignRelationships();
 
   for (auto& roomRelation : floor->GetRoomRelationships()) {
@@ -114,7 +114,7 @@ std::unique_ptr<Floor> subdivideInterior(Plot* plot, Canvas& canvas) {
   return floor;
 }
 
-void decorateInterior(std::unique_ptr<Floor>& floor, Canvas& canvas) {
+void decorateInterior(Floor* floor, Canvas& canvas) {
   Plot* plot = floor->GetPlot();
 
   floor->ResetRoomAllocations();
