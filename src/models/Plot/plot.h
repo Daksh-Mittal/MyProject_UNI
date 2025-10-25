@@ -6,6 +6,7 @@
 class Plot {
     public:
         Plot(mcpp::Coordinate origin, mcpp::Coordinate bound);
+        Plot(mcpp::Coordinate origin, mcpp::Coordinate bound, mcpp::Coordinate entrance);
 
         // Helper methods
         int get_min_x() const;
@@ -21,6 +22,7 @@ class Plot {
         mcpp::Coordinate origin;    // minimum/north-west (-x, -z) corner
         mcpp::Coordinate bound;     // maximum/south-east (x, z) corner  
         mcpp::Coordinate entrance;  // for paths and house generation
+        bool useDefaultEntrance = true;
         int buildingHeight;
 };
 
