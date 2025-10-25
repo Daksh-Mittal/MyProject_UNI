@@ -21,7 +21,7 @@ int main(const int argc, const char *argv[]) {
         std::srand(Config::GetInstance().GetSeed());
 
         // OK since a component will never have whitespace (not possible)
-        if (Config::GetInstance().GetTestedComponentName() != "NOT SPECIFIED" && Config::GetInstance().IsTestMode()) {
+        if (Config::GetInstance().GetTestedComponentName() != "NOT SET" && Config::GetInstance().IsTestMode()) {
             std::string component = Config::GetInstance().GetTestedComponentName();
             int testCase = Config::GetInstance().GetTestCase();
             std::cout << "Testing component '" << component << '\'';
