@@ -37,6 +37,14 @@ bool validate_plot(mcpp::MinecraftConnection& mc, const mcpp::Coordinate& origin
     const Config& config = Config::GetInstance();
     int plot_border = config.GetPlotBorder();
     
+    mcpp::Coordinate* location = config.GetLocation();
+    mcpp::Coordinate default_loc(0, 0, 0); // Placeholder, will be replaced if null.
+
+    if (location == nullptr) {
+        default_loc = mc.getPlayerTilePosition();
+        location = &default_loc; // Use the address of the temporary coordinate
+    }
+
     int plot_min_x = std::min(origin.x, bound.x);
     int plot_max_x = std::max(origin.x, bound.x);
     int plot_min_z = std::min(origin.z, bound.z);
@@ -73,7 +81,7 @@ bool validate_plot(mcpp::MinecraftConnection& mc, const mcpp::Coordinate& origin
     }
     
     const int village_size = config.GetVillageSize();
-    mcpp::Coordinate* location = config.GetLocation(); 
+    
     const int center_x = location->x;
     const int center_z = location->z;
     
@@ -104,9 +112,18 @@ mcpp::Coordinate determine_entrance(const mcpp::Coordinate& origin, const mcpp::
     const int min_z = std::min(origin.z, bound.z);
     const int max_z = std::max(origin.z, bound.z);
     const int plot_height = origin.y;
-    mcpp::Coordinate* location = config.GetLocation(); 
-    const int center_x = location->x;
-    const int center_z = location->z;
+    
+    // Safely retrieve the center coordinates, using a placeholder if null.
+    mcpp::Coordinate* location_ptr = config.GetLocation(); 
+    mcpp::Coordinate default_loc(0, 0, 0);
+
+    if (location_ptr == nullptr) {
+        default_loc = mcpp::Coordinate(); 
+        location_ptr = &default_loc;
+    }
+
+    const int center_x = location_ptr->x;
+    const int center_z = location_ptr->z;
 
     const int dist_to_bottom_edge = std::abs(center_z - min_z);
     const int dist_to_top_edge = std::abs(center_z - max_z);
@@ -158,9 +175,17 @@ std::vector<Plot> find_plots() {
     const Config& config = Config::GetInstance();
     std::vector<Plot> plots;
     const int village_size = config.GetVillageSize();
-    mcpp::Coordinate* location = config.GetLocation();
-    const int center_x = location->x;
-    const int center_z = location->z;
+    
+    mcpp::Coordinate* location_ptr = config.GetLocation();
+    mcpp::Coordinate default_loc(0, 0, 0);
+
+    if (location_ptr == nullptr) {
+        default_loc = mc.getPlayerTilePosition();
+        location_ptr = &default_loc;
+    }
+
+    const int center_x = location_ptr->x;
+    const int center_z = location_ptr->z;
     const bool testmode = config.IsTestMode();
 
     std::cout << "DEBUG: Finding plots around (" << center_x << "," << center_z 
@@ -373,6 +398,13 @@ void place_wall(const std::vector<Plot>& plots) {
     const Config& config = Config::GetInstance();
     const int village_size = config.GetVillageSize();
     mcpp::Coordinate* location = config.GetLocation();
+    
+    // check for location pointer
+    mcpp::Coordinate default_loc(0, 0, 0);
+    if (location == nullptr) {
+        location = &default_loc;
+    }
+
     const int center_x = location->x;
     const int center_z = location->z;
     
