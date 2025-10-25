@@ -1,4 +1,5 @@
 #include "config.h"
+#include <stdexcept>
 
 Config::Config() {}
 
@@ -11,6 +12,10 @@ void Config::ApplyConfiguration(std::map<std::string, std::string> config) {
   if (config.count("testmode") > 0) {
     testingComponent = config["testmode"];
     isTestMode = true;
+
+    if (testingComponent == "") {
+      testingComponent = "NOT SPECIFIED"; // OK since there will never be a space in a user-provided options
+    }
   }
   if (config.count("loc") > 0) {
     int commaPos = config["loc"].find(',', 0);
@@ -32,7 +37,8 @@ void Config::ApplyConfiguration(std::map<std::string, std::string> config) {
       throw std::invalid_argument("Expected two integers for parameter 'loc'");
     }
 
-    location = new mcpp::Coordinate2D(x, z);
+    // Location is parsed as x, z, using y=0 placeholder
+    location = new mcpp::Coordinate(x, 0, z);
   }
   if (config.count("case") > 0) {
     try {
@@ -79,7 +85,7 @@ void Config::ApplyConfiguration(const int argc, const char *argv[]) {
       std::string option = text.substr(2);
 
       lastKey = option;
-      config[option] = ""; // if no value is passed, we still want the option to be detected (e.g., --testmode on its own should still work)
+      config[option] = ""; // if no value is passed, we still want the option to be detected
     }
     else if (lastKey != "") {
       config[lastKey] = text;
@@ -110,7 +116,7 @@ int Config::GetTestCase() const {
   return Config::IsTestMode() ? testCase : -1;
 }
 
-mcpp::Coordinate2D* Config::GetLocation() const {
+mcpp::Coordinate* Config::GetLocation() const {
   return location;
 }
 
