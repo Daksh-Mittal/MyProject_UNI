@@ -67,34 +67,32 @@ Path nearestWaypoint(std::vector<Waypoint>& waypoints, mcpp::Coordinate p) {
 }
 
 //function to connect all building entrances to the nearest waypoint
-void connect_buildings(std::vector<Waypoint>& waypoints, std::vector<Plot>& p, mcpp::MinecraftConnection& mc) {
+void connect_buildings(std::vector<Waypoint>& waypoints, std::vector<Plot*>& p, mcpp::MinecraftConnection& mc) {
     //loop through all the plots, finding the nearest waypoint to the entrance and generating a path
     for (size_t i = 0; i < p.size(); ++i) {
-            Path newPath = nearestWaypoint(waypoints, p[i].entrance);
+            Path newPath = nearestWaypoint(waypoints, p[i]->entrance);
             breadth_first_search(newPath, mc);
     }
 };
 
-void testTaskC() {
-    int testCase = Config::GetInstance().GetTestCase();
-    mcpp::MinecraftConnection mc;
+void testTaskC(const std::string& component, int testCase, mcpp::MinecraftConnection& mc) {
     mcpp::Coordinate origin = mc.getPlayerTilePosition() + mcpp::Coordinate(1, 0, 1);
 
-    std::vector<Plot> testPlots;       //use normal Plot vector (not pointers)
+    std::vector<Plot*> testPlots;       //use normal Plot vector (not pointers)
     std::vector<Waypoint> waypoints;
 
     if (testCase == 1) {
         // Small case
-        testPlots.push_back(Plot(origin + mcpp::Coordinate(0, 0, 0),
+        testPlots.push_back(new Plot(origin + mcpp::Coordinate(0, 0, 0),
                                  origin + mcpp::Coordinate(13, 0, 13))); // 14x14
         waypoints.push_back({origin.x + 5, origin.y, origin.z - 5, false});
         waypoints.push_back({origin.x + 20, origin.y, origin.z, false});
     }
     else if (testCase == 2) {
         //Normal test: multiple plots n waypoints
-        testPlots.push_back(Plot(origin + mcpp::Coordinate(0, 0, 0),
+        testPlots.push_back(new Plot(origin + mcpp::Coordinate(0, 0, 0),
                                  origin + mcpp::Coordinate(15, 0, 15))); // 16x16
-        testPlots.push_back(Plot(origin + mcpp::Coordinate(25, 0, 0),
+        testPlots.push_back(new Plot(origin + mcpp::Coordinate(25, 0, 0),
                                  origin + mcpp::Coordinate(40, 0, 15))); // 2nd plot
 
         waypoints.push_back({origin.x, origin.y, origin.z, false});
@@ -114,4 +112,8 @@ void testTaskC() {
 
     //Connect plot to waypoints
     connect_buildings(waypoints, testPlots, mc);
+
+    for (auto& testPlot : testPlots) {
+        delete testPlot;
+    }
 }
