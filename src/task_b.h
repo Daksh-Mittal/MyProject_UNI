@@ -8,16 +8,18 @@
 #include "models/Plot/plot.h"
 #include "models/Room/room.h"
 #include "canvas.h"
+#include "subdivision_error.h"
 #include "utils.h"
 
 void testTaskB();
 void buildBuildings(std::vector<Plot*> plots);
 
 void buildExterior(Plot* plot, Canvas& canvas);
-std::unique_ptr<Floor> subdivideInterior(Plot* plot, Canvas& canvas);
-void decorateInterior(std::unique_ptr<Floor>& floor, Canvas& canvas);
+Floor* subdivideInterior(Plot* plot, Canvas& canvas);
+void decorateInterior(Floor* floor, Canvas& canvas);
 
 std::vector<PlotRegion> subdividePlot(const Plot& plot);
-std::vector<PlotRegion> subdivide(std::vector<PlotRegion> regions);
+std::vector<PlotRegion> subdivide(std::vector<PlotRegion> regions, const Plot& plot);
 
 #endif
+
