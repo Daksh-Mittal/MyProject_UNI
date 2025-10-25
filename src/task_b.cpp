@@ -6,19 +6,19 @@ void testTaskB() {
   mcpp::Coordinate origin = Config::GetInstance().GetMinecraftConnection()->getPlayerTilePosition() + mcpp::Coordinate(1, 0, 1);
 
   if (testCase == 1) {
-    testPlots.push_back(new Plot(origin + mcpp::Coordinate(0, 0, 0), origin + mcpp::Coordinate(13, 0, 13))); // 14x14
+    testPlots.push_back(new Plot(origin, origin + mcpp::Coordinate(13, 0, 13))); // 14x14
   }
   else if (testCase == 2) {
-    testPlots.push_back(new Plot(origin + mcpp::Coordinate(20, 0, 0), origin + mcpp::Coordinate(20 + 15, 0, 15))); // 16x16
+    testPlots.push_back(new Plot(origin, origin + mcpp::Coordinate(15, 0, 15))); // 16x16
   }
   else if (testCase == 3) {
-    testPlots.push_back(new Plot(origin + mcpp::Coordinate(40, 0, 0), origin + mcpp::Coordinate(40 + 14, 0, 18))); // 15x19
+    testPlots.push_back(new Plot(origin, origin + mcpp::Coordinate(14, 0, 18))); // 15x19
   }
   else if (testCase == 4) {
-    testPlots.push_back(new Plot(origin + mcpp::Coordinate(60, 0, 0), origin + mcpp::Coordinate(60 + 19, 0, 19))); // 20x20
+    testPlots.push_back(new Plot(origin, origin + mcpp::Coordinate(19, 0, 19))); // 20x20
   }
   else if (testCase == 5) {
-    testPlots.push_back(new Plot(origin + mcpp::Coordinate(90, 0, 0), origin + mcpp::Coordinate(90 + 19, 0, 13))); // 20x14
+    testPlots.push_back(new Plot(origin, origin + mcpp::Coordinate(19, 0, 13))); // 20x14
   }
   else {
     throw std::invalid_argument("Parameter 'case' must be an integer between 1 and 5 given component '" + Config::GetInstance().GetTestedComponentName() + "'");
