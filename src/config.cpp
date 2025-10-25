@@ -1,5 +1,4 @@
 #include "config.h"
-#include <stdexcept>
 
 Config::Config() {}
 
@@ -14,7 +13,7 @@ void Config::ApplyConfiguration(std::map<std::string, std::string> config) {
     isTestMode = true;
 
     if (testingComponent == "") {
-      testingComponent = "NOT SPECIFIED"; // OK since there will never be a space in a user-provided options
+      testingComponent = "NOT SET"; // OK since there will never be a space in a user-provided options
     }
   }
   if (config.count("loc") > 0) {
@@ -76,20 +75,21 @@ void Config::ApplyConfiguration(std::map<std::string, std::string> config) {
 
 void Config::ApplyConfiguration(const int argc, const char *argv[]) {
   std::map<std::string, std::string> config;
-  std::string lastKey = "";
 
   for (unsigned int i = 0 ; i < argc ; i++) {
     std::string text = argv[i];
 
     if (text.length() >= 2 && (text[0] == '-' && text[1] == '-')) {
       std::string option = text.substr(2);
+      size_t equals = text.find('=');
 
-      lastKey = option;
-      config[option] = ""; // if no value is passed, we still want the option to be detected
-    }
-    else if (lastKey != "") {
-      config[lastKey] = text;
-      lastKey = "";
+      if (equals != std::string::npos) {
+        option = text.substr(2, equals - 2);
+        config[option] = text.substr(equals + 1);
+      }
+      else {
+        config[option] = ""; // if no value is passed, we still want the option to be detected
+      }
     }
   }
 
