@@ -35,7 +35,8 @@ Axis PlotRegion::GetSubdivisionAxis() {
 
 // Mutates this PlotRegion and creates a new one
 // (Minimises unnecessary memory usage)
-PlotRegion PlotRegion::Subdivide(Axis axis) {
+PlotRegion PlotRegion::Subdivide(Axis axis, const Plot& plot) {
+  bool couldRandomise = false;
   //PlotRegion *regionPtr = nullptr; // TODO: style guide prohibits multiple return statements but we will use it for now to avoid errors
 
   if (axis == Axis::X) {
@@ -50,12 +51,20 @@ PlotRegion PlotRegion::Subdivide(Axis axis) {
 
       if (acceptableDist > 1) {
         int offset = MIN_SIZE + std::rand() % acceptableDist;
+        couldRandomise = true;
         point = corner1.x + offset;
       }
     }
 
     mcpp::Coordinate topLeftCorner(point, corner1.y, corner1.z);
     mcpp::Coordinate bottomRightCorner(point, corner2.y, corner2.z);
+
+    // if the default entrance is being used, we don't need to account for whether or not a subdivision would block the entrance
+    if (!plot.useDefaultEntrance) {
+      if (topLeftCorner == plot.entrance || bottomRightCorner == plot.entrance) {
+        throw subdivision_error("Subdivision would block entrance", couldRandomise);
+      }
+    }
 
     PlotRegion region(topLeftCorner, corner2);
     corner2 = bottomRightCorner; // new bottom right corner is midpoint
@@ -80,6 +89,12 @@ PlotRegion PlotRegion::Subdivide(Axis axis) {
     mcpp::Coordinate bottomRightCorner(corner2.x, corner2.y, point);
     mcpp::Coordinate topLeftCorner(corner1.x, corner1.y, point);
 
+    if (!plot.useDefaultEntrance) {
+      if (topLeftCorner == plot.entrance || bottomRightCorner == plot.entrance) {
+        throw subdivision_error("Subdivision would block entrance", couldRandomise);
+      }
+    }
+
     PlotRegion region(topLeftCorner, corner2);
     corner2 = bottomRightCorner; // new bottom right corner is midpoint
     return region;
@@ -96,3 +111,4 @@ mcpp::Coordinate PlotRegion::GetTopLeftCorner() const {
 mcpp::Coordinate PlotRegion::GetBottomRightCorner() const {
   return corner2;
 }
+
