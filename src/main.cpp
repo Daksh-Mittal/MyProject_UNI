@@ -20,7 +20,8 @@ int main(const int argc, const char *argv[]) {
         Config::GetInstance().SetMinecraftConnection(&mc);
         std::srand(Config::GetInstance().GetSeed());
 
-        if (Config::GetInstance().IsTestMode()) {
+        // OK since a component will never have whitespace (not possible)
+        if (Config::GetInstance().GetTestedComponentName() != "NOT SPECIFIED" && Config::GetInstance().IsTestMode()) {
             std::string component = Config::GetInstance().GetTestedComponentName();
             int testCase = Config::GetInstance().GetTestCase();
             std::cout << "Testing component '" << component << '\'';
