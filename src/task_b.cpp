@@ -133,9 +133,9 @@ void decorateInterior(Floor* floor, Canvas& canvas) {
   canvas.SetRule(mcpp::BlockType(54, 3), 'C');
   // Library/living room
   canvas.SetRule(mcpp::Blocks::BOOKSHELF, 'K');
-
-  bool hasEntrance = false;
   
+  bool hasEntrance = !plot->useDefaultEntrance;
+
   for (auto& room : *floor->GetRooms()) {
     RoomType roomType = room->GetRoomType();
     mcpp::Coordinate topLeftFloor = room->GetUsableCorner(Corner::TopLeft) - mcpp::Coordinate(0, 1, 0);
@@ -148,6 +148,8 @@ void decorateInterior(Floor* floor, Canvas& canvas) {
     // or else each room will be too dark
     canvas.Place(room->GetCentre(plot->buildingHeight - 1), mcpp::Blocks::GLOWSTONE);
 
+    // if no entrance is provided, use the midpoint of the left side of the first room
+    // this only happens in testing. in testing, we need the entrance to be placed predictably, so this is always the midpoint of the left wall
     if (!hasEntrance && exteriorSides.size() > 0) {
       entrance = room->GetMidpointOnSide(exteriorSides.at(0));
 
@@ -245,12 +247,19 @@ void decorateInterior(Floor* floor, Canvas& canvas) {
       canvas.Place(midpoint, mcpp::Blocks::GLASS);
     }
   }
+
+  if (!plot->useDefaultEntrance) {
+    canvas.Place(plot->entrance + mcpp::Coordinate(0, 2, 0), mcpp::BlockType(64, 8));
+    canvas.Place(plot->entrance + mcpp::Coordinate(0, 1, 0), mcpp::Blocks::OAK_DOOR_BLOCK);
+
+    clearEntrance(plot);
+  }
   
   canvas.Output("furnishing");
 }
 
 std::vector<PlotRegion> subdividePlot(const Plot& plot) {
-  std::vector<PlotRegion> subdivided = subdivide(std::vector<PlotRegion>{PlotRegion{plot}});
+  std::vector<PlotRegion> subdivided = subdivide(std::vector<PlotRegion>{PlotRegion{plot}}, plot);
 
   // we want the final plot regions to be ordered left to right, top to bottom, so that we can predict the
   // result in advance (a MUST for testing!), so we need to sort them
@@ -266,17 +275,42 @@ std::vector<PlotRegion> subdividePlot(const Plot& plot) {
   return subdivided;
 }
 
-std::vector<PlotRegion> subdivide(std::vector<PlotRegion> regions) {
+std::vector<PlotRegion> subdivide(std::vector<PlotRegion> regions, const Plot& plot) {
   std::vector<PlotRegion> allRegions;
 
   for (PlotRegion& plotRegion : regions) {
     Axis axis = plotRegion.GetSubdivisionAxis();
 
     if (axis != Axis::None) {
-      PlotRegion newRegion = plotRegion.Subdivide(axis);
-      std::vector<PlotRegion> nextRegions {plotRegion, newRegion};
-      std::vector<PlotRegion> subdividedNextRegions = subdivide(nextRegions);
-      allRegions.insert(allRegions.end(), subdividedNextRegions.begin(), subdividedNextRegions.end());
+      bool canMoveOn = false;
+      bool didSucceed = false;
+
+      while (!canMoveOn) {
+        try {
+          PlotRegion newRegion = plotRegion.Subdivide(axis, plot);
+          std::vector<PlotRegion> nextRegions {plotRegion, newRegion};
+          std::vector<PlotRegion> subdividedNextRegions = subdivide(nextRegions, plot);
+          allRegions.insert(allRegions.end(), subdividedNextRegions.begin(), subdividedNextRegions.end());
+          didSucceed = true;
+          canMoveOn = true;
+        }
+        // we only want to catch subdivision errors, since they are the only type of error we are expecting might occur
+        // we also NEED to catch them, or they will simply be returned to the caller who will mistake them for being
+        // a subdivision error in their plotRegion.Subdivide call (in actuality it would be from the recursive call)
+        catch(subdivision_error err) {
+          // we don't want to get stuck in an infinite loop if there is only one valid location to subdivide along
+          // in such an instance, subdivision simply isn't possible, or else the entrance set in Task A will point into a wall
+          if (!err.CouldRandomise()) {
+            canMoveOn = true;
+          }
+        }
+      }
+
+      // this only happens if the only valid location to subdivide along would obstruct the entrance; in such an event, we simply
+      // don't subdivide
+      if (!didSucceed) {
+        allRegions.push_back(plotRegion);
+      }
     }
     else {
       allRegions.push_back(plotRegion);
@@ -285,4 +319,3 @@ std::vector<PlotRegion> subdivide(std::vector<PlotRegion> regions) {
 
   return allRegions;
 }
-
