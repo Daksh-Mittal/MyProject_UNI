@@ -168,3 +168,4 @@ void breadth_first_search(Path& newPath, mcpp::MinecraftConnection& mc) {
     deleteParent(parent,L);
     destroyVisited(visited,L);
 }
+
