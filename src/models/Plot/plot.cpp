@@ -2,6 +2,7 @@
 #include <algorithm>
 
 Plot::Plot(mcpp::Coordinate origin, mcpp::Coordinate bound) : origin(origin), bound(bound) {}
+Plot::Plot(mcpp::Coordinate origin, mcpp::Coordinate bound, mcpp::Coordinate entrance) : origin(origin), bound(bound), entrance(entrance), useDefaultEntrance(false) {}
 
 int Plot::get_min_x() const {
     return std::min(origin.x, bound.x);
