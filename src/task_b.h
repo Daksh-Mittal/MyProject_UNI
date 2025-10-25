@@ -4,6 +4,7 @@
 #include <vector>
 #include <iostream>
 #include <map>
+#include <algorithm>
 #include "models/PlotRegion/plot_region.h"
 #include "models/Plot/plot.h"
 #include "models/Room/room.h"
@@ -22,4 +23,3 @@ std::vector<PlotRegion> subdividePlot(const Plot& plot);
 std::vector<PlotRegion> subdivide(std::vector<PlotRegion> regions, const Plot& plot);
 
 #endif
-
