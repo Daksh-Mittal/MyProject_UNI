@@ -4,6 +4,7 @@
 #include <mcpp/mcpp.h>
 #include "models/Plot/plot.h"
 #include "enums/axis.h"
+#include "subdivision_error.h"
 #include "config.h"
 
 // need a forward declaration here to avoid a circular dependency
@@ -15,7 +16,7 @@ class PlotRegion {
 
   public:
     Axis GetSubdivisionAxis();
-    PlotRegion Subdivide(Axis axis);
+    PlotRegion Subdivide(Axis axis, const Plot& plot);
     mcpp::Coordinate GetTopLeftCorner() const;
     mcpp::Coordinate GetBottomRightCorner() const;
     int GetLength() const;
