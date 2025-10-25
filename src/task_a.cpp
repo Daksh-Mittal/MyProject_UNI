@@ -256,11 +256,9 @@ std::vector<Plot> find_plots() {
 
         mcpp::Coordinate entrance = determine_entrance(origin, bound);
 
-        Plot new_plot(origin, bound);
-        new_plot.entrance = entrance;
-        new_plot.buildingHeight = plot_height; 
-
+        Plot new_plot(origin, bound, entrance);
         plots.push_back(new_plot);
+        
         std::cout << "DEBUG: Added plot #" << plots.size() << " at (" << plot_min_x << "," << plot_min_z 
                   << ") size " << current_plot_size << " height " << plot_height << std::endl;
 
