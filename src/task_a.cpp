@@ -405,8 +405,9 @@ void place_wall(const std::vector<Plot>& plots) {
     }
 }
 
-std::vector<mcpp::Coordinate> find_waypoints(const std::vector<Plot>& plots) {
-    std::vector<mcpp::Coordinate> waypoints;
+// FIX: Corrected return type to std::vector<Waypoint> to match the declaration in task_a.h
+std::vector<Waypoint> find_waypoints(const std::vector<Plot>& plots) {
+    std::vector<Waypoint> waypoints;
     mcpp::MinecraftConnection mc;
     
     const int required_min_waypoints = std::max(1, (int)plots.size() / 5);
@@ -433,7 +434,7 @@ std::vector<mcpp::Coordinate> find_waypoints(const std::vector<Plot>& plots) {
     mcpp::Coordinate waypoint_coord(center_x, surface_y + 1, center_z);
 
     if (!is_in_plot_bounds(waypoint_coord, plots)) {
-        waypoints.emplace_back(center_x, surface_y + 1, center_z);
+        waypoints.emplace_back(Waypoint{center_x, surface_y + 1, center_z, false});
     }
     
     if ((int)waypoints.size() < required_min_waypoints) {
