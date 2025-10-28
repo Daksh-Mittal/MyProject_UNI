@@ -10,7 +10,7 @@
 void connect_waypoints(mcpp::Coordinate& start, std::vector<Waypoint>& waypoints, mcpp::MinecraftConnection& mc);
 
 // Connect plot to the nearest waypoints
-void connect_buildings(std::vector<Waypoint>& waypoints, std::vector<Plot>& plots, mcpp::MinecraftConnection& mc);
+void connect_buildings(std::vector<Waypoint>& waypoints, std::vector<Plot*>& plots, mcpp::MinecraftConnection& mc);
 
 void testTaskC(const std::string&, int, mcpp::MinecraftConnection&);
 #endif
