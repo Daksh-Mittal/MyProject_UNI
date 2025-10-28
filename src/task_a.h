@@ -3,7 +3,8 @@
 
 #include <vector>
 #include <mcpp/mcpp.h>
-#include "models/Plot/plot.h" 
+#include "models/Plot/plot.h"
+#include "models/Waypoints/waypoint.h" // Include Waypoint definition
 
 // Helper functions
 int get_surface_y(mcpp::MinecraftConnection& mc, int x, int z);
@@ -17,8 +18,7 @@ void fast_build_wall_at(mcpp::MinecraftConnection& mc, int x, int z);
 std::vector<Plot> find_plots();
 void terraform(const std::vector<Plot>& plots);
 void place_wall(const std::vector<Plot>& plots);
-std::vector<mcpp::Coordinate> find_waypoints(const std::vector<Plot>& plots);
+// CHANGED RETURN TYPE: Return Waypoint structs, not raw Coordinates
+std::vector<Waypoint> find_waypoints(const std::vector<Plot>& plots); 
 
 #endif
-
-
