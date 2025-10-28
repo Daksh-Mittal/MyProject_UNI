@@ -1,6 +1,7 @@
 #include "floor.h"
 #include "../RoomRelationship/room_relationship.h"
 #include "../Room/room.h"
+#include <cmath> // ADDED: Includes std::floor and std::ceil
 
 Floor::Floor(std::vector<Room*>* rooms, Plot* plot) : rooms(rooms), plot(plot) {}
 
