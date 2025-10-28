@@ -20,6 +20,16 @@ int main(const int argc, const char *argv[]) {
         Config::GetInstance().SetMinecraftConnection(&mc);
         std::srand(Config::GetInstance().GetSeed());
 
+        // --- Defensive check for village location (player position default) ---
+        if (Config::GetInstance().GetLocation() == nullptr) {
+            // Get player position for default village center
+            mcpp::Coordinate player_pos = mc.getPlayerTilePosition();
+            // The location will be set using Y=0 as a placeholder, as the actual plot height is determined in find_plots
+            Config::GetInstance().SetLocation(new mcpp::Coordinate(player_pos.x, 0, player_pos.z));
+            std::cout << "Using player position (" << player_pos.x << ", " << player_pos.z << ") as default village center." << std::endl;
+        }
+        // -------------------------------------------------------------------
+
         // OK since a component will never have whitespace (not possible)
         if (Config::GetInstance().GetTestedComponentName() != "NOT SET" && Config::GetInstance().IsTestMode()) {
             std::string component = Config::GetInstance().GetTestedComponentName();
@@ -43,15 +53,12 @@ int main(const int argc, const char *argv[]) {
 
             std::cout << "\t Finding plots..." << std::endl ;
 
-            // Insert finding plots here.
             std::vector<Plot> plots = find_plots() ;
 
             std::cout << "\t Doing some landscaping..." << std::endl ;
 
-            // Insert terraforming here.
             terraform(plots) ;
 
-            // Insert Placing a wall here.
             std::cout << "\t Placing a cool wall around the village..." << std::endl ;
             place_wall(plots) ;
 
@@ -64,15 +71,16 @@ int main(const int argc, const char *argv[]) {
             // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
             // Task C
             std::cout << "Task C: Building Houses" << std::endl ;
-            std::vector<Waypoint> waypoints = get_waypoints();
-            mcpp::Coordinate start(waypoints[0].x, waypoints[0].y, waypoints[0].z);
+            std::vector<Waypoint> waypoints = find_waypoints(plots); // Use found waypoints
+            mcpp::Coordinate start(waypoints.front().x, waypoints.front().y, waypoints.front().z);
 
             std::cout << "\t Connecting waypoints with a fancy path..." << std::endl ;
             connect_waypoints(start, waypoints, mc);
 
             std::cout << "\t Connecting buildings to waypoints with more fancy paths..." << std::endl ;
             connect_buildings(waypoints, pointerisedPlots, mc);
-            //builds light pole
+            
+            // Build light pole for waypoints
             for (auto& wp : waypoints) {
                 int groundY = mc.getHeight(mcpp::Coordinate2D(wp.x, wp.z));
                 auto b = mc.getBlock({wp.x, groundY, wp.z});
@@ -88,7 +96,7 @@ int main(const int argc, const char *argv[]) {
         }
     }
     catch(std::exception exception) {
-        std::cerr << exception.what() << std::endl;
+        std::cerr << "Caught exception: " << exception.what() << std::endl;
         returnCode = 1;
     }
 
