@@ -4,32 +4,37 @@
 #include <stdexcept>
 #include <string>
 
-Config::Config() : villageSize(200), plotBorder(10) {} // Initialized defaults based on spec
+// Use the correct size type for string operations
+using std::string;
+using string_size_type = string::size_type;
+
+Config::Config() : villageSize(200), plotBorder(10) {}
 
 Config& Config::GetInstance() {
   static Config config;
   return config;
 }
 
-// ... (rest of ApplyConfiguration functions remain the same) ...
-
-void Config::ApplyConfiguration(std::map<std::string, std::string> config) {
+void Config::ApplyConfiguration(std::map<string, string> config) {
   if (config.count("testmode") > 0) {
     testingComponent = config["testmode"];
     isTestMode = true;
 
     if (testingComponent == "") {
-      testingComponent = "NOT SET"; // OK since there will never be a space in a user-provided options
+      testingComponent = "NOT SET";
     }
   }
   if (config.count("loc") > 0) {
-    int commaPos = config["loc"].find(',', 0);
+    // FIX 1 & 2: Use string_size_type (or size_t) for commaPos to avoid signed/unsigned comparison errors
+    string_size_type commaPos = config["loc"].find(',', 0);
     int x = 0;
     int z = 0;
 
-    if (commaPos == std::string::npos) {
+    // Compare with string::npos (which is string_size_type)
+    if (commaPos == string::npos) {
       throw std::invalid_argument("Expected comma for parameter 'loc'");
     }
+    // Compare with rfind result (which is string_size_type)
     if (commaPos != config["loc"].rfind(',')) {
       throw std::invalid_argument("Expected single comma for parameter 'loc', received multiple commas");
     }
@@ -42,12 +47,10 @@ void Config::ApplyConfiguration(std::map<std::string, std::string> config) {
       throw std::invalid_argument("Expected two integers for parameter 'loc'");
     }
 
-    // Location is parsed as x, z, using y=0 placeholder
-    // If location was already set by a previous call, delete it first to prevent memory leak
     if (location != nullptr) {
         delete location;
     }
-    location = new mcpp::Coordinate(x, 0, z); // Use Y=0 as placeholder, actual Y will be determined by get_surface_y
+    location = new mcpp::Coordinate(x, 0, z);
   }
   if (config.count("case") > 0) {
     try {
@@ -83,24 +86,23 @@ void Config::ApplyConfiguration(std::map<std::string, std::string> config) {
   }
 }
 
-// ... (rest of ApplyConfiguration(const int argc, const char *argv[]) remains the same) ...
-
 void Config::ApplyConfiguration(const int argc, const char *argv[]) {
-  std::map<std::string, std::string> config;
+  std::map<string, string> config;
 
-  for (unsigned int i = 0 ; i < argc ; i++) {
-    std::string text = argv[i];
+  // FIX 3: Change loop counter i to signed int to match argc, avoiding signed/unsigned error
+  for (int i = 0 ; i < argc ; i++) {
+    string text = argv[i];
 
     if (text.length() >= 2 && (text[0] == '-' && text[1] == '-')) {
-      std::string option = text.substr(2);
-      size_t equals = text.find('=');
+      string option = text.substr(2);
+      string_size_type equals = text.find('='); // Use string_size_type for find result
 
-      if (equals != std::string::npos) {
+      if (equals != string::npos) {
         option = text.substr(2, equals - 2);
         config[option] = text.substr(equals + 1);
       }
       else {
-        config[option] = ""; // if no value is passed, we still want the option to be detected
+        config[option] = "";
       }
     }
   }
@@ -116,7 +118,6 @@ mcpp::MinecraftConnection* Config::GetMinecraftConnection() const {
   return mc;
 }
 
-// NEW METHOD IMPLEMENTATION
 void Config::SetLocation(mcpp::Coordinate* newLocation) {
     if (location != nullptr) {
         delete location;
@@ -128,7 +129,7 @@ bool Config::IsTestMode() const {
   return isTestMode;
 }
 
-std::string Config::GetTestedComponentName() const {
+string Config::GetTestedComponentName() const {
   return Config::IsTestMode() ? testingComponent : "";
 }
 
@@ -136,7 +137,6 @@ int Config::GetTestCase() const {
   return Config::IsTestMode() ? testCase : -1;
 }
 
-// NOTE: Adjusted return type for consistency with main logic
 mcpp::Coordinate* Config::GetLocation() const {
   return location;
 }
