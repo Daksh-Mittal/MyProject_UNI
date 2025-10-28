@@ -1,11 +1,17 @@
 #include "config.h"
+#include <iostream>
+#include <cstdlib>
+#include <stdexcept>
+#include <string>
 
-Config::Config() {}
+Config::Config() : villageSize(200), plotBorder(10) {} // Initialized defaults based on spec
 
 Config& Config::GetInstance() {
   static Config config;
   return config;
 }
+
+// ... (rest of ApplyConfiguration functions remain the same) ...
 
 void Config::ApplyConfiguration(std::map<std::string, std::string> config) {
   if (config.count("testmode") > 0) {
@@ -37,7 +43,11 @@ void Config::ApplyConfiguration(std::map<std::string, std::string> config) {
     }
 
     // Location is parsed as x, z, using y=0 placeholder
-    location = new mcpp::Coordinate(x, 0, z);
+    // If location was already set by a previous call, delete it first to prevent memory leak
+    if (location != nullptr) {
+        delete location;
+    }
+    location = new mcpp::Coordinate(x, 0, z); // Use Y=0 as placeholder, actual Y will be determined by get_surface_y
   }
   if (config.count("case") > 0) {
     try {
@@ -73,6 +83,8 @@ void Config::ApplyConfiguration(std::map<std::string, std::string> config) {
   }
 }
 
+// ... (rest of ApplyConfiguration(const int argc, const char *argv[]) remains the same) ...
+
 void Config::ApplyConfiguration(const int argc, const char *argv[]) {
   std::map<std::string, std::string> config;
 
@@ -104,6 +116,14 @@ mcpp::MinecraftConnection* Config::GetMinecraftConnection() const {
   return mc;
 }
 
+// NEW METHOD IMPLEMENTATION
+void Config::SetLocation(mcpp::Coordinate* newLocation) {
+    if (location != nullptr) {
+        delete location;
+    }
+    location = newLocation;
+}
+
 bool Config::IsTestMode() const {
   return isTestMode;
 }
@@ -116,6 +136,7 @@ int Config::GetTestCase() const {
   return Config::IsTestMode() ? testCase : -1;
 }
 
+// NOTE: Adjusted return type for consistency with main logic
 mcpp::Coordinate* Config::GetLocation() const {
   return location;
 }
@@ -140,5 +161,8 @@ int Config::GetSeed() const {
 Config::~Config() {
   if (location != nullptr) {
     delete location;
+  }
+  if (seed != nullptr) {
+      delete seed;
   }
 }
