@@ -20,11 +20,11 @@ double calc_dist(int u, int v, const std::vector<Waypoint>& waypoints) {
 int minimum(std::vector<double>& key, std::vector<bool>& mst) {
     double min = INT_MAX;
     int min_index = -1;
-    for (int i = 0; i < mst.size(); i++) {
+    for (size_t i = 0; i < mst.size(); i++) { // FIX: Changed 'int i' to 'size_t i'
         //store node if it is not in tree and has smaller key
         if (!mst[i] && key[i] < min) {
             min = key[i];
-            min_index = i;
+            min_index = (int)i; // Cast back to int since the index is guaranteed to be small
         }
     }
     return min_index;
@@ -81,4 +81,3 @@ std::map<std::pair<int,int>, std::vector<Waypoint>> createAJL(std::vector<Waypoi
     }
     return adj;
 }
-
