@@ -165,4 +165,3 @@ RoomType Room::GetRoomType() const {
 void Room::SetRoomType(RoomType roomType) {
   this->roomType = roomType;
 }
-
