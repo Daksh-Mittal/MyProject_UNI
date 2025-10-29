@@ -294,14 +294,20 @@ std::vector<PlotRegion> subdivide(std::vector<PlotRegion> regions, const Plot& p
           didSucceed = true;
           canMoveOn = true;
         }
-        // FIX: Catch by constant reference
-        catch(const subdivision_error& err) { 
+        // we only want to catch subdivision errors, since they are the only type of error we are expecting might occur
+        // we also NEED to catch them, or they will simply be returned to the caller who will mistake them for being
+        // a subdivision error in their plotRegion.Subdivide call (in actuality it would be from the recursive call)
+        catch(subdivision_error err) {
+          // we don't want to get stuck in an infinite loop if there is only one valid location to subdivide along
+          // in such an instance, subdivision simply isn't possible, or else the entrance set in Task A will point into a wall
           if (!err.CouldRandomise()) {
             canMoveOn = true;
           }
         }
       }
 
+      // this only happens if the only valid location to subdivide along would obstruct the entrance; in such an event, we simply
+      // don't subdivide
       if (!didSucceed) {
         allRegions.push_back(plotRegion);
       }
