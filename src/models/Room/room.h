@@ -38,14 +38,12 @@ class Room {
     mcpp::Coordinate cornerBottomLeft;
     mcpp::Coordinate cornerBottomRight;
 
-    RoomRelationship* relationAbove;
-    RoomRelationship* relationLeft;
-    RoomRelationship* relationRight;
-    RoomRelationship* relationBelow;
+    RoomRelationship* relationAbove = nullptr;
+    RoomRelationship* relationLeft = nullptr;
+    RoomRelationship* relationRight = nullptr;
+    RoomRelationship* relationBelow = nullptr;
 
     RoomType roomType;
 };
 
 #endif
-
-
