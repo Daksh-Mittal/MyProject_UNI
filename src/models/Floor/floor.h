@@ -3,10 +3,12 @@
 
 #include <vector>
 #include <map>
+#include <cmath>
 #include "enums/side.h"
 #include "enums/room_type.h"
 #include "models/Plot/plot.h"
 #include "config.h"
+
 
 // forward declaration necessary to prevent a circular dependency with Room
 class Room;
