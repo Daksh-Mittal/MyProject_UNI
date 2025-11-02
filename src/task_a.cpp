@@ -265,6 +265,7 @@ std::vector<Plot> find_plots() {
         }
         
         plot_height = get_surface_y(mc, (plot_min_x + plot_max_x) / 2, (plot_min_z + plot_max_z) / 2);
+        plot_height += 1;
         origin.y = plot_height;
         bound.y = plot_height;
 
@@ -323,13 +324,15 @@ void terraform(const std::vector<Plot>& plots) {
                 const int distance = std::max(dist_x, dist_z);
                 
                 if (distance == 0) {
-                    for (int y = plot_height + 2; y < 256; ++y) {
+                    const int base_fill_y = plot_height; 
+
+                    for (int y = base_fill_y + 1; y < 256; ++y) {
                         mc.setBlock(mcpp::Coordinate(x, y, z), mcpp::Blocks::AIR);
                     }
-                    for (int y = 0; y <= plot_height; ++y) {
-                        mc.setBlock(mcpp::Coordinate(x, y, z), mcpp::Blocks::DIRT);
+                    
+                    for (int y = 0; y <= base_fill_y; ++y) {
+                        mc.setBlock(mcpp::Coordinate(x, y, z), mcpp::Blocks::STONE);
                     }
-                    mc.setBlock(mcpp::Coordinate(x, plot_height, z), mcpp::Blocks::GRASS); 
                     
                 } else if (distance <= border_size) {
                     const int ground_height = get_surface_y(mc, x, z);
@@ -347,7 +350,7 @@ void terraform(const std::vector<Plot>& plots) {
                     for (int y = 0; y <= final_height; ++y) {
                         mc.setBlock(mcpp::Coordinate(x, y, z), mcpp::Blocks::DIRT);
                     }
-                    mc.setBlock(mcpp::Coordinate(x, final_height, z), mcpp::Blocks::GRASS); 
+                    mc.setBlock(mcpp::Coordinate(x, final_height + 1, z), mcpp::Blocks::GRASS); 
                 }
             }
         }
