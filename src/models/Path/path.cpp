@@ -4,6 +4,7 @@
 #include <algorithm>
 #include "models/Node/queue.h"
 #include <unordered_map>
+#include <iostream>
 
 //global cache so height lookups are reused across all bfs calls
 static std::unordered_map<long long, int> global_height_cache;
@@ -12,15 +13,12 @@ static auto cache_key = [](int x, int z){return ((long long)x << 32) ^ (unsigned
 
 // gets the surface height, keeps going down if block is leaf/wood to avoid trees, note to self: (remove if trees are cleared during terrain generation)
 static inline int surfaceYStand(mcpp::MinecraftConnection& mc, int x, int z) {
-    // FIX 1: Pass x and z separately. Assuming getHeight signature is mc.getHeight(int x, int z)
-    int y = mc.getHeight(x, z);
-    // FIX 2: Explicit constructor call
-    auto b = mc.getBlock(mcpp::Coordinate(x, y, z));
+    int y = mc.getHeight(mcpp::Coordinate2D(x, z));
+    auto b = mc.getBlock({x, y, z});
     //checks if the current block is on a tree
     while (b == mcpp::Blocks::OAK_LEAVES || b == mcpp::Blocks::SPRUCE_LEAVES || b == mcpp::Blocks::BIRCH_LEAVES || b == mcpp::Blocks::JUNGLE_LEAVES || b == mcpp::Blocks::ACACIA_LEAVES || b == mcpp::Blocks::OAK_WOOD|| b == mcpp::Blocks::SPRUCE_WOOD || b == mcpp::Blocks::BIRCH_WOOD || b == mcpp::Blocks::JUNGLE_WOOD || b == mcpp::Blocks::ACACIA_WOOD) {
         --y;
-        // FIX 2: Explicit constructor call
-        b = mc.getBlock(mcpp::Coordinate(x, y, z));
+        b = mc.getBlock({x, y, z});
     }
     return y + 1;
 }
@@ -59,6 +57,7 @@ Path::Path(mcpp::Coordinate start, mcpp::Coordinate end) :start(start), end(end)
 
 //BFS algorithm to find the shortest walkable path between two points
 void breadth_first_search(Path& newPath, mcpp::MinecraftConnection& mc) {
+    global_height_cache.clear();
     const int pad = 4;  //how far the algo will scan around path
     const int minX = std::min(newPath.start.x, newPath.end.x) - pad;
     const int minZ = std::min(newPath.start.z, newPath.end.z) - pad;
@@ -89,8 +88,7 @@ void breadth_first_search(Path& newPath, mcpp::MinecraftConnection& mc) {
             }
             H[i][j] = height;
 
-            // FIX 2: Explicit constructor call
-            auto under = mc.getBlock(mcpp::Coordinate(x, H[i][j] - 1, z));
+            auto under = mc.getBlock({x, H[i][j] - 1, z});
             solid[i][j] = !(under==mcpp::Blocks::AIR || under == mcpp::Blocks::STILL_WATER);
         }
     }
@@ -134,8 +132,7 @@ void breadth_first_search(Path& newPath, mcpp::MinecraftConnection& mc) {
 
             visited[I][J] = true;
             parent[I][J] = cur;
-            // FIX 2: Explicit constructor call
-            q.push(mcpp::Coordinate(nx,nY,nz));
+            q.push({nx,nY,nz});
         }
     }
 
@@ -154,18 +151,15 @@ void breadth_first_search(Path& newPath, mcpp::MinecraftConnection& mc) {
         //place path
         for(auto& c: pathNodes){
             int sy = H[ix(c.x)][iz(c.z)];
-            // FIX 2: Explicit constructor call
-            mc.setBlock(mcpp::Coordinate(c.x, sy - 1, c.z), mcpp::Blocks::GRAVEL); //places gravel as path
+            mc.setBlock({c.x, sy - 1, c.z}, mcpp::Blocks::GRAVEL); //places gravel as path
 
             //place support block under if under is water or air
             for(int y = sy - 2; y >= 0; --y){
-                // FIX 2: Explicit constructor call
-                auto b = mc.getBlock(mcpp::Coordinate(c.x,y,c.z));
+                auto b = mc.getBlock({c.x,y,c.z});
                 if(b!=mcpp::Blocks::AIR && b!=mcpp::Blocks::STILL_WATER) {
                     break;
                 }
-                // FIX 2: Explicit constructor call
-                mc.setBlock(mcpp::Coordinate(c.x,y,c.z), mcpp::Blocks::STONE);
+                mc.setBlock({c.x,y,c.z}, mcpp::Blocks::STONE);
             }
         }
     }
