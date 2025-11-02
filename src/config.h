@@ -3,6 +3,8 @@
 
 #include <mcpp/mcpp.h>
 #include <map>
+#include <iostream>
+#include <exception>
 #include "enums/room_type.h"
 
 class Config {
@@ -11,14 +13,13 @@ class Config {
     ~Config();
     
     void ApplyConfiguration(const int argc, const char *argv[]);
-    void ApplyConfiguration(std::map<std::string, std::string> config);
     void SetMinecraftConnection(mcpp::MinecraftConnection* mc);
-    void SetLocation(mcpp::Coordinate* location); // ADDED: Setter for default location
+    void SetLocation(mcpp::Coordinate2D* location); // Setter for default location
 
     bool IsTestMode() const;
-    std::string GetTestedComponentName() const;
+    std::string* GetTestedComponentName() const;
     int GetTestCase() const;
-    mcpp::Coordinate* GetLocation() const; // Changed from mcpp::Coordinate2D* to mcpp::Coordinate* for consistency
+    mcpp::Coordinate2D* GetLocation() const; 
     int GetVillageSize() const;
     int GetPlotBorder() const;
     int GetSeed() const;
@@ -27,13 +28,13 @@ class Config {
   private:
     Config();
 
-    std::string testingComponent = "";
-    mcpp::Coordinate* location = nullptr; // Adjusted type for clarity, though it seems it was intended to store 3D coords
+    std::string* testingComponent = nullptr;
+    mcpp::Coordinate2D* location = nullptr;
     mcpp::MinecraftConnection* mc = nullptr;
     bool isTestMode = false;
     int testCase = -1;
-    int villageSize = 0;
-    int plotBorder = 0;
+    int villageSize = 200;
+    int plotBorder = 10;
     int* seed = nullptr;
 
     // config is a singleton, so we must disallow copying and assignment
