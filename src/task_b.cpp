@@ -1,6 +1,8 @@
 #include "task_b.h"
 
-void testTaskB() {
+std::string test_task_b() {
+  std::string returnMessage;
+
   int testCase = Config::GetInstance().GetTestCase();
   std::vector<Plot*> testPlots;
   mcpp::Coordinate origin = Config::GetInstance().GetMinecraftConnection()->getPlayerTilePosition() + mcpp::Coordinate(1, 0, 1);
@@ -21,17 +23,19 @@ void testTaskB() {
     testPlots.push_back(new Plot(origin, origin + mcpp::Coordinate(19, 0, 13))); // 20x14
   }
   else {
-    throw std::invalid_argument("Parameter 'case' must be an integer between 1 and 5 given component '" + Config::GetInstance().GetTestedComponentName() + "'");
+    returnMessage = "Parameter 'case' must be an integer between 1 and 5 given component '" + *Config::GetInstance().GetTestedComponentName() + "'";
   }
 
-  buildBuildings(testPlots);
+  build_buildings(testPlots);
 
   for (Plot* plot : testPlots) {
     delete plot;
   }
+
+  return returnMessage;
 }
 
-void buildBuildings(std::vector<Plot*> plots) {
+void build_buildings(std::vector<Plot*> plots) {
   int buildingHeight = 6;
 
   for (auto& plot : plots) {
@@ -49,15 +53,16 @@ void buildBuildings(std::vector<Plot*> plots) {
       plot->origin
     );
 
-    plot->buildingHeight = buildingHeight ++;
+    plot->buildingHeight = buildingHeight;
+    ++buildingHeight; // could condense into just plot->buildingHeight = buildingHeight++ but its behaviour is less clear written that way so it hasn't been
 
-    buildExterior(plot, canvas);
-    Floor* floor = subdivideInterior(plot, canvas);
-    decorateInterior(floor, canvas);
+    build_exterior(plot, canvas);
+    Floor* floor = subdivide_interior(plot, canvas);
+    decorate_interior(floor, canvas);
   }
 }
 
-void buildExterior(Plot* plot, Canvas& canvas) {
+void build_exterior(Plot* plot, Canvas& canvas) {
   if (isTesting("exterior")) std::cout << "Walls" << std::endl;
 
   canvas.Place(plot->origin, mcpp::Coordinate(plot->bound.x, plot->origin.y + plot->buildingHeight-1, plot->origin.z), mcpp::Blocks::BRICKS); // top wall
@@ -77,7 +82,7 @@ void buildExterior(Plot* plot, Canvas& canvas) {
   canvas.Clear();
 }
 
-Floor* subdivideInterior(Plot* plot, Canvas& canvas) {
+Floor* subdivide_interior(Plot* plot, Canvas& canvas) {
   std::vector<Room*>* rooms = new std::vector<Room*>;
   std::vector<PlotRegion> plotRegions = subdividePlot(*plot);
 
@@ -99,8 +104,6 @@ Floor* subdivideInterior(Plot* plot, Canvas& canvas) {
   }
 
   Floor* floor = new Floor(rooms, plot);
-  floor->AssignRelationships();
-
   for (auto& roomRelation : floor->GetRoomRelationships()) {
     mcpp::Coordinate coord = roomRelation->ConnectionPoint;
 
@@ -114,7 +117,7 @@ Floor* subdivideInterior(Plot* plot, Canvas& canvas) {
   return floor;
 }
 
-void decorateInterior(Floor* floor, Canvas& canvas) {
+void decorate_interior(Floor* floor, Canvas& canvas) {
   Plot* plot = floor->GetPlot();
 
   floor->ResetRoomAllocations();
@@ -138,8 +141,8 @@ void decorateInterior(Floor* floor, Canvas& canvas) {
 
   for (auto& room : *floor->GetRooms()) {
     RoomType roomType = room->GetRoomType();
-    mcpp::Coordinate topLeftFloor = room->GetUsableCorner(Corner::TopLeft) - mcpp::Coordinate(0, 1, 0);
-    mcpp::Coordinate bottomRightFloor = room->GetUsableCorner(Corner::BottomRight) - mcpp::Coordinate(0, 1, 0);
+    mcpp::Coordinate topLeftFloor = room->GetInteriorCorner(Corner::TopLeft) - mcpp::Coordinate(0, 1, 0);
+    mcpp::Coordinate bottomRightFloor = room->GetInteriorCorner(Corner::BottomRight) - mcpp::Coordinate(0, 1, 0);
     mcpp::Coordinate entrance(0,0,0);
     bool isEntranceRoom = false;
   
@@ -148,8 +151,9 @@ void decorateInterior(Floor* floor, Canvas& canvas) {
     // or else each room will be too dark
     canvas.Place(room->GetCentre(plot->buildingHeight - 1), mcpp::Blocks::GLOWSTONE);
 
-    // if no entrance is provided, use the midpoint of the left side of the first room
-    // this only happens in testing. in testing, we need the entrance to be placed predictably, so this is always the midpoint of the left wall
+    // ONLY if *NO* entrance is provided, use the midpoint of the left side of the first room. 
+    // the first room should always have at least one exterior side, but we check this just to be sure
+    // however, an entrance should always be provided.
     if (!hasEntrance && exteriorSides.size() > 0) {
       entrance = room->GetMidpointOnSide(exteriorSides.at(0));
 
@@ -164,7 +168,7 @@ void decorateInterior(Floor* floor, Canvas& canvas) {
     }
 
     if (roomType == RoomType::Bedroom) {
-      mcpp::Coordinate topLeft = room->GetUsableCorner(Corner::TopLeft);
+      mcpp::Coordinate topLeft = room->GetInteriorCorner(Corner::TopLeft);
       RoomRelationship* topRel = room->GetRelationship(Side::Top);
       RoomRelationship* leftRel = room->GetRelationship(Side::Left);
 
@@ -182,7 +186,7 @@ void decorateInterior(Floor* floor, Canvas& canvas) {
       canvas.Place(topLeftFloor, bottomRightFloor, mcpp::Blocks::BLUE_WOOL);
     }
     else if (roomType == RoomType::Bathroom) {
-      mcpp::Coordinate topLeft = room->GetUsableCorner(Corner::TopLeft);
+      mcpp::Coordinate topLeft = room->GetInteriorCorner(Corner::TopLeft);
       RoomRelationship* topRel = room->GetRelationship(Side::Top);
       RoomRelationship* leftRel = room->GetRelationship(Side::Left);
 
@@ -197,11 +201,11 @@ void decorateInterior(Floor* floor, Canvas& canvas) {
       // Toilet
       canvas.Place(topLeft, topLeft + mcpp::Coordinate(0, 1, 0), mcpp::Blocks::QUARTZ_BLOCK);
       canvas.Place(topLeft + mcpp::Coordinate(0, 0, 1), mcpp::BlockType(156, 7));
-      canvas.Place(topLeft + mcpp::Coordinate(0, 1, 1), mcpp::Blocks::WEIGHTED_PRESSURE_PLATE_HEAVY);
+      //canvas.Place(topLeft + mcpp::Coordinate(0, 1, 1), mcpp::Blocks::WEIGHTED_PRESSURE_PLATE_HEAVY); // Removed because we can't move this easily in case it needs to be moved to accomodate the entrance
       canvas.Place(topLeftFloor, bottomRightFloor, mcpp::Blocks::DARK_PRISMARINE);
     }
     else if (roomType == RoomType::Kitchen) {
-      mcpp::Coordinate topLeft = room->GetUsableCorner(Corner::TopLeft);
+      mcpp::Coordinate topLeft = room->GetInteriorCorner(Corner::TopLeft);
       RoomRelationship* topRel = room->GetRelationship(Side::Top);
 
       // we don't want to obstruct the doorway at the top of the room
@@ -220,13 +224,13 @@ void decorateInterior(Floor* floor, Canvas& canvas) {
       canvas.Place(topLeftFloor, bottomRightFloor, mcpp::Blocks::STONE);
     }
     else if (roomType == RoomType::LivingRoom) {
-      mcpp::Coordinate topLeft = room->GetUsableCorner(Corner::TopLeft);
+      mcpp::Coordinate topLeft = room->GetInteriorCorner(Corner::TopLeft);
 
       canvas.Place(topLeft, topLeft + mcpp::Coordinate(0,1,0), mcpp::Blocks::BOOKSHELF);
       canvas.Place(topLeftFloor, bottomRightFloor, mcpp::Blocks::RED_WOOL);
     }
     else if (roomType == RoomType::Storage) {
-      mcpp::Coordinate topLeft = room->GetUsableCorner(Corner::TopLeft);
+      mcpp::Coordinate topLeft = room->GetInteriorCorner(Corner::TopLeft);
 
       if (!Config::GetInstance().IsTestMode()) {
         RoomRelationship* topRel = room->GetRelationship(Side::Top);
@@ -296,8 +300,8 @@ std::vector<PlotRegion> subdivide(std::vector<PlotRegion> regions, const Plot& p
         }
         // we only want to catch subdivision errors, since they are the only type of error we are expecting might occur
         // we also NEED to catch them, or they will simply be returned to the caller who will mistake them for being
-        // a subdivision error in their plotRegion.Subdivide call (in actuality it would be from the recursive call)
-        catch(subdivision_error err) {
+        // a subdivision error in their plotRegion.Subdivide call (in actuality it would be from within a recursive call)
+        catch(const subdivision_error& err) {
           // we don't want to get stuck in an infinite loop if there is only one valid location to subdivide along
           // in such an instance, subdivision simply isn't possible, or else the entrance set in Task A will point into a wall
           if (!err.CouldRandomise()) {
