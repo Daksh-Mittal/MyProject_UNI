@@ -1,113 +1,122 @@
 #include "config.h"
-#include <iostream>
-#include <cstdlib>
-#include <stdexcept>
-#include <string>
 
-// Use the correct size type for string operations
-using std::string;
-using string_size_type = string::size_type;
-
-Config::Config() : villageSize(200), plotBorder(10) {}
+Config::Config() {}
 
 Config& Config::GetInstance() {
   static Config config;
   return config;
 }
 
-void Config::ApplyConfiguration(std::map<string, string> config) {
-  if (config.count("testmode") > 0) {
-    testingComponent = config["testmode"];
-    isTestMode = true;
+void Config::ApplyConfiguration(const int argc, const char *argv[]) {
+  for (unsigned int i = 0 ; i < argc ; i++) {
+    std::string text = argv[i];
 
-    if (testingComponent == "") {
-      testingComponent = "NOT SET";
-    }
-  }
-  if (config.count("loc") > 0) {
-    // FIX 1 & 2: Use string_size_type (or size_t) for commaPos to avoid signed/unsigned comparison errors
-    string_size_type commaPos = config["loc"].find(',', 0);
-    int x = 0;
-    int z = 0;
+    if (text.length() >= 2 && (text[0] == '-' && text[1] == '-')) {
+      std::string option = text.substr(2);
+      std::string value;
+      size_t equals = text.find('=');
 
-    // Compare with string::npos (which is string_size_type)
-    if (commaPos == string::npos) {
-      throw std::invalid_argument("Expected comma for parameter 'loc'");
-    }
-    // Compare with rfind result (which is string_size_type)
-    if (commaPos != config["loc"].rfind(',')) {
-      throw std::invalid_argument("Expected single comma for parameter 'loc', received multiple commas");
-    }
+      if (equals != std::string::npos) {
+        option = text.substr(2, equals - 2);
+        value = text.substr(equals + 1);
+      }
 
-    try {
-      x = std::stoi(config["loc"].substr(0, commaPos));
-      z = std::stoi(config["loc"].substr(commaPos + 1));
-    }
-    catch(...) {
-      throw std::invalid_argument("Expected two integers for parameter 'loc'");
-    }
+      if (option == "component") {
+        isTestMode = true;
+        testingComponent = new std::string(value);
+      }
+      else if (option == "testmode") {
+        isTestMode = true;
 
-    if (location != nullptr) {
-        delete location;
+        // Allows shorthand - instead of '--testmode --component=abc', write '--testmode=abc'
+        if (!value.empty()) {
+          testingComponent = new std::string(value);
+        }
+      }
+      else if (option == "loc") {
+        int commaPos = value.find(',', 0);
+        int x = 0;
+        int z = 0;
+
+        if (commaPos == std::string::npos) {
+          throw std::invalid_argument("Expected comma for parameter 'loc'");
+        }
+        if (commaPos != value.rfind(',')) {
+          throw std::invalid_argument("Expected single comma for parameter 'loc', received multiple commas");
+        }
+
+        try {
+          x = std::stoi(value.substr(0, commaPos));
+          z = std::stoi(value.substr(commaPos + 1));
+        }
+        catch(...) {
+          throw std::invalid_argument("Expected two integers for parameter 'loc'");
+        }
+
+        // Location is parsed as x, z, using y=0 placeholder
+        location = new mcpp::Coordinate2D(x, z);
+      }
+      else if (option == "case") {
+        try {
+          testCase = std::stoi(value);
+        }
+        catch(...) {
+          throw std::invalid_argument("Expected an integer for parameter 'case'");
+        }
+
+        if (testCase <= 0) {
+          throw std::invalid_argument("Parameter 'case' should be positive");
+        }
+      }
+      else if (option == "village-size") {
+        try {
+          villageSize = std::stoi(value);
+        }
+        catch(...) {
+          throw std::invalid_argument("Expected an integer for parameter 'village-size'");
+        }
+        if (villageSize <= 0) {
+          throw std::invalid_argument("Parameter 'case' should be positive");
+        }
+      }
+      else if (option == "plot-border") {
+        try {
+          plotBorder = std::stoi(value);
+        }
+        catch(...) {
+          throw std::invalid_argument("Expected a positive integer for parameter 'plot-border'");
+        }
+
+        if (plotBorder <= 0) {
+          throw std::invalid_argument("Integer cannot be negative for parameter 'plot-border'");
+        }
+      }
+      else if (option == "seed") {
+        try {
+          seed = new int(std::stoi(value));
+        }
+        catch(...) {
+          throw std::invalid_argument("Expected an integer for parameter 'seed'");
+        }
+      }
+      else {
+        std::cout << "Warning: Ignoring unknown parameter '" << option << "'" << std::endl;
+      }
     }
-    location = new mcpp::Coordinate(x, 0, z);
-  }
-  if (config.count("case") > 0) {
-    try {
-      testCase = std::stoi(config["case"]);
-    }
-    catch(...) {
-      throw std::invalid_argument("Expected an integer for parameter 'case'");
-    }
-  }
-  if (config.count("village-size") > 0) {
-    try {
-      this->villageSize = std::stoi(config["village-size"]);
-    }
-    catch(...) {
-      throw std::invalid_argument("Expected an integer for parameter 'village-size'");
-    }
-  }
-  if (config.count("plot-border") > 0) {
-    try {
-      this->plotBorder = std::stoi(config["plot-border"]);
-    }
-    catch(...) {
-      throw std::invalid_argument("Expected an integer for parameter 'plot-border'");
-    }
-  }
-  if (config.count("seed") > 0) {
-    try {
-      this->seed = new int(std::stoi(config["seed"]));
-    }
-    catch(...) {
-      throw std::invalid_argument("Expected an integer for parameter 'seed'");
+    else {
+      // we don't want the call to the executable to raise a warning
+      if (i != 0) {
+        std::cout << "Warning: Ignoring invalid value '" << text << "'" << std::endl;
+      }
     }
   }
 }
 
-void Config::ApplyConfiguration(const int argc, const char *argv[]) {
-  std::map<string, string> config;
-
-  // FIX 3: Change loop counter i to signed int to match argc, avoiding signed/unsigned error
-  for (int i = 0 ; i < argc ; i++) {
-    string text = argv[i];
-
-    if (text.length() >= 2 && (text[0] == '-' && text[1] == '-')) {
-      string option = text.substr(2);
-      string_size_type equals = text.find('='); // Use string_size_type for find result
-
-      if (equals != string::npos) {
-        option = text.substr(2, equals - 2);
-        config[option] = text.substr(equals + 1);
-      }
-      else {
-        config[option] = "";
-      }
-    }
+void Config::SetLocation(mcpp::Coordinate2D* newLocation) {
+  if (location != nullptr) {
+    delete location;
   }
-
-  ApplyConfiguration(config);
+  location = newLocation;
 }
 
 void Config::SetMinecraftConnection(mcpp::MinecraftConnection* mc) {
@@ -118,26 +127,19 @@ mcpp::MinecraftConnection* Config::GetMinecraftConnection() const {
   return mc;
 }
 
-void Config::SetLocation(mcpp::Coordinate* newLocation) {
-    if (location != nullptr) {
-        delete location;
-    }
-    location = newLocation;
-}
-
 bool Config::IsTestMode() const {
   return isTestMode;
 }
 
-string Config::GetTestedComponentName() const {
-  return Config::IsTestMode() ? testingComponent : "";
+std::string* Config::GetTestedComponentName() const {
+  return testingComponent;
 }
 
 int Config::GetTestCase() const {
   return Config::IsTestMode() ? testCase : -1;
 }
 
-mcpp::Coordinate* Config::GetLocation() const {
+mcpp::Coordinate2D* Config::GetLocation() const {
   return location;
 }
 
@@ -162,7 +164,7 @@ Config::~Config() {
   if (location != nullptr) {
     delete location;
   }
-  if (seed != nullptr) {
-      delete seed;
+  if (testingComponent != nullptr) {
+    delete testingComponent;
   }
 }
