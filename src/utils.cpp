@@ -7,7 +7,17 @@ void printStudentDetails() {
 }
 
 bool isTesting(std::string testingComponent) {
-  return testingComponent == "" || (Config::GetInstance().IsTestMode() && testingComponent == Config::GetInstance().GetTestedComponentName());
+  bool isBeingTested = false;
+  std::string* configuredTestingComponent = Config::GetInstance().GetTestedComponentName();
+
+  if (testingComponent == "") {
+    isBeingTested = true;
+  }
+  else if (configuredTestingComponent != nullptr && *configuredTestingComponent == testingComponent) {
+    isBeingTested = true;
+  }
+
+  return Config::GetInstance().IsTestMode() && isBeingTested;
 } 
 
 std::vector<Plot*> pointerisePlotVector(std::vector<Plot> plots) {
@@ -30,7 +40,7 @@ void moveTo(mcpp::Coordinate from, mcpp::Coordinate to) {
 
 void clearEntrance(Plot* plot) {
   mcpp::MinecraftConnection* mc = Config::GetInstance().GetMinecraftConnection();
-  mcpp::Coordinate entrance = plot->entrance;
+  mcpp::Coordinate entrance = plot->entrance + mcpp::Coordinate(0, 1, 0);
 
   // Left
   if (entrance.x == plot->origin.x) {
@@ -39,23 +49,61 @@ void clearEntrance(Plot* plot) {
     if (mc->getBlock(check) != mcpp::Blocks::AIR) {
       moveTo(check, check + mcpp::Coordinate(0, 0, 1));
       moveTo(check + mcpp::Coordinate(0, 1, 0), check + mcpp::Coordinate(0, 1, 1));
+
+      check = check + mcpp::Coordinate(1, 0, 0);
+
+      if (mc->getBlock(check) != mcpp::Blocks::AIR) {
+        moveTo(check, check + mcpp::Coordinate(0, 0, 1));
+        moveTo(check + mcpp::Coordinate(0, 1, 0), check + mcpp::Coordinate(0, 1, 1));
+      }
     }
   }
   // Right
   else if (entrance.x == plot->bound.x) {
-    // do nothing - there should never be obstacles
+    mcpp::Coordinate check = entrance + mcpp::Coordinate(-1, 0, 0);
+
+    if (mc->getBlock(check) != mcpp::Blocks::AIR) {
+      moveTo(check, check + mcpp::Coordinate(0, 0, 1));
+      moveTo(check + mcpp::Coordinate(0, 1, 0), check + mcpp::Coordinate(0, 1, 1));
+
+      check = check + mcpp::Coordinate(-1, 0, 0);
+
+      if (mc->getBlock(check) != mcpp::Blocks::AIR) {
+        moveTo(check, check + mcpp::Coordinate(0, 0, 1));
+        moveTo(check + mcpp::Coordinate(0, 1, 0), check + mcpp::Coordinate(0, 1, 1));
+      }
+    }
   }
   // Top
-  else if (entrance.y == plot->origin.y) {
+  else if (entrance.z == plot->origin.z) {
     mcpp::Coordinate check = entrance + mcpp::Coordinate(0, 0, 1);
 
     if (mc->getBlock(check) != mcpp::Blocks::AIR) {
       moveTo(check, check + mcpp::Coordinate(1, 0, 0));
       moveTo(check + mcpp::Coordinate(0, 1, 0), check + mcpp::Coordinate(1, 1, 0));
+
+      check = check + mcpp::Coordinate(0, 0, 1);
+
+      if (mc->getBlock(check) != mcpp::Blocks::AIR) {
+        moveTo(check, check + mcpp::Coordinate(1, 0, 0));
+        moveTo(check + mcpp::Coordinate(0, 1, 0), check + mcpp::Coordinate(1, 1, 0));
+      }
     }
   }
   // Bottom
-  else if (entrance.y == plot->bound.y) {
-    // do nothing - there should never be obstacles
+  else if (entrance.z == plot->bound.z) {
+    mcpp::Coordinate check = entrance + mcpp::Coordinate(0, 0, -1);
+
+    if (mc->getBlock(check) != mcpp::Blocks::AIR) {
+      moveTo(check, check + mcpp::Coordinate(1, 0, 0));
+      moveTo(check + mcpp::Coordinate(0, 1, 0), check + mcpp::Coordinate(1, 1, 0));
+
+      check = check + mcpp::Coordinate(0, 0, -1);
+
+      if (mc->getBlock(check) != mcpp::Blocks::AIR) {
+        moveTo(check, check + mcpp::Coordinate(1, 0, 0));
+        moveTo(check + mcpp::Coordinate(0, 1, 0), check + mcpp::Coordinate(1, 1, 0));
+      }
+    }
   }
 }
