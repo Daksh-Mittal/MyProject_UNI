@@ -53,10 +53,9 @@ mcpp::Coordinate Room::GetCorner(Corner corner) const {
   return point;
 }
 
-mcpp::Coordinate Room::GetUsableCorner(Corner corner) const {
+mcpp::Coordinate Room::GetInteriorCorner(Corner corner) const {
   mcpp::Coordinate point(0,0,0);
 
-  // we can't use switch here because the style guide prohibits multiple return statements and break, so they aren't viable.
   if (corner == Corner::TopLeft) {
     point = cornerTopLeft + mcpp::Coordinate(1, 1, 1);
   }
@@ -134,17 +133,6 @@ bool Room::IsPointOnSide(Side side, mcpp::Coordinate point) const {
   }
 
   return isOnSide;
-}
-
-std::vector<Side> Room::GetExteriorSides(Plot plot, bool verbose) const {
-  std::vector<Side> sides;
-
-  if (cornerTopLeft.x == plot.origin.x && cornerBottomLeft.x == plot.origin.x) sides.push_back(Side::Left);
-  else if (cornerTopLeft.z == plot.origin.z && cornerTopRight.z == plot.origin.z) sides.push_back(Side::Top);
-  else if (cornerTopRight.x == plot.bound.x && cornerBottomRight.x == plot.bound.x) sides.push_back(Side::Right);
-  else if (cornerBottomLeft.z == plot.bound.z && cornerBottomRight.z == plot.bound.z) sides.push_back(Side::Bottom);
-
-  return sides;
 }
 
 std::vector<Side> Room::GetExteriorSides(Plot plot) const {
