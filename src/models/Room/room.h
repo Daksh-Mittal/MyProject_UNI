@@ -22,13 +22,12 @@ class Room {
 
     RoomRelationship* GetRelationship(Side) const;
     mcpp::Coordinate GetCorner(Corner) const;
-    mcpp::Coordinate GetUsableCorner(Corner) const;
+    mcpp::Coordinate GetInteriorCorner(Corner) const;
     mcpp::Coordinate GetMidpointOnSide(Side) const;
     mcpp::Coordinate GetCentre(int height) const;
     bool IsMidpointObstructed(Side) const;
     bool IsPointOnSide(Side side, mcpp::Coordinate point) const;
     std::vector<Side> GetExteriorSides(Plot plot) const;
-    std::vector<Side> GetExteriorSides(Plot plot, bool verbose) const;
     
     Room(PlotRegion region);
 
