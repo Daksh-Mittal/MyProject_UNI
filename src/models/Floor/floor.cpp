@@ -1,9 +1,10 @@
 #include "floor.h"
 #include "../RoomRelationship/room_relationship.h"
 #include "../Room/room.h"
-#include <cmath> // ADDED: Includes std::floor and std::ceil
 
-Floor::Floor(std::vector<Room*>* rooms, Plot* plot) : rooms(rooms), plot(plot) {}
+Floor::Floor(std::vector<Room*>* rooms, Plot* plot) : rooms(rooms), plot(plot) { 
+  AssignRelationships();
+}
 
 // we must clean up RoomRelationships since they are loaded into memory by 'new'
 // we also clean up Rooms because we consider Floor the owner of each room object (once Floor is no longer needed, we assume each Room is no longer needed either)
