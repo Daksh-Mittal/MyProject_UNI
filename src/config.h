@@ -12,7 +12,7 @@ class Config {
     static Config& GetInstance();
     ~Config();
     
-    void ApplyConfiguration(const int argc, const char *argv[]);
+    void ApplyConfiguration(const unsigned int argc, const char *argv[]);
     void SetMinecraftConnection(mcpp::MinecraftConnection* mc);
     void SetLocation(mcpp::Coordinate2D* location); // Setter for default location
 
