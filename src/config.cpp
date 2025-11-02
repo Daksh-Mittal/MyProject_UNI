@@ -7,7 +7,7 @@ Config& Config::GetInstance() {
   return config;
 }
 
-void Config::ApplyConfiguration(const int argc, const char *argv[]) {
+void Config::ApplyConfiguration(const unsigned int argc, const char *argv[]) {
   for (unsigned int i = 0 ; i < argc ; i++) {
     std::string text = argv[i];
 
@@ -34,7 +34,7 @@ void Config::ApplyConfiguration(const int argc, const char *argv[]) {
         }
       }
       else if (option == "loc") {
-        int commaPos = value.find(',', 0);
+        size_t commaPos = value.find(',', 0);
         int x = 0;
         int z = 0;
 
