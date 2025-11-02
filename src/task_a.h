@@ -18,7 +18,6 @@ void fast_build_wall_at(mcpp::MinecraftConnection& mc, int x, int z);
 std::vector<Plot> find_plots();
 void terraform(const std::vector<Plot>& plots);
 void place_wall(const std::vector<Plot>& plots);
-// CHANGED RETURN TYPE: Return Waypoint structs, not raw Coordinates
 std::vector<Waypoint> find_waypoints(const std::vector<Plot>& plots); 
 
 #endif
