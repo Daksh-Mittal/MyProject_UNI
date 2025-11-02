@@ -36,6 +36,7 @@ Axis PlotRegion::GetSubdivisionAxis() {
 // Mutates this PlotRegion and creates a new one
 // (Minimises unnecessary memory usage)
 PlotRegion PlotRegion::Subdivide(Axis axis, const Plot& plot) {
+  PlotRegion returnResult(*this); // safe default is just a clone of this (should always be overriden)
   bool couldRandomise = false;
   //PlotRegion *regionPtr = nullptr; // TODO: style guide prohibits multiple return statements but we will use it for now to avoid errors
 
@@ -68,7 +69,7 @@ PlotRegion PlotRegion::Subdivide(Axis axis, const Plot& plot) {
 
     PlotRegion region(topLeftCorner, corner2);
     corner2 = bottomRightCorner; // new bottom right corner is midpoint
-    return region;
+    returnResult = region;
   }
   else if (axis == Axis::Z) {
     int point = corner1.z + MIN_SIZE;
@@ -97,11 +98,13 @@ PlotRegion PlotRegion::Subdivide(Axis axis, const Plot& plot) {
 
     PlotRegion region(topLeftCorner, corner2);
     corner2 = bottomRightCorner; // new bottom right corner is midpoint
-    return region;
+    returnResult = region;
+  }
+  else {
+    throw std::runtime_error("Given Axis::None, plot subdivision is impossible");
   }
 
-  throw std::invalid_argument("NEVER");
-  //return *regionPtr;
+  return returnResult;
 }
 
 mcpp::Coordinate PlotRegion::GetTopLeftCorner() const {
