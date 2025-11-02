@@ -5,6 +5,7 @@
 #include <iostream>
 #include <map>
 #include <algorithm>
+#include <string>
 #include "models/PlotRegion/plot_region.h"
 #include "models/Plot/plot.h"
 #include "models/Room/room.h"
@@ -12,12 +13,12 @@
 #include "subdivision_error.h"
 #include "utils.h"
 
-void testTaskB();
-void buildBuildings(std::vector<Plot*> plots);
+std::string test_task_b();
+void build_buildings(std::vector<Plot*> plots);
 
-void buildExterior(Plot* plot, Canvas& canvas);
-Floor* subdivideInterior(Plot* plot, Canvas& canvas);
-void decorateInterior(Floor* floor, Canvas& canvas);
+void build_exterior(Plot* plot, Canvas& canvas);
+Floor* subdivide_interior(Plot* plot, Canvas& canvas);
+void decorate_interior(Floor* floor, Canvas& canvas);
 
 std::vector<PlotRegion> subdividePlot(const Plot& plot);
 std::vector<PlotRegion> subdivide(std::vector<PlotRegion> regions, const Plot& plot);
